@@ -45,7 +45,7 @@ export default function WhatIfPanel({ scenarios, setScenarios, baseline, current
   const remove = (id: string) => setScenarios(scenarios.filter((s) => s.id !== id));
 
   const revDelta = current.totalRevenue - baseline.totalRevenue;
-  const poolDelta = current.freeCashFlowTotal - baseline.freeCashFlowTotal;
+  const poolDelta = current.talentPoolTotal - baseline.talentPoolTotal;
   const costDelta = current.totalExpenses - baseline.totalExpenses;
 
   return (

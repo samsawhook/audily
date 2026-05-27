@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   computeBudget,
+  DEFAULT_BUDGET,
   DEFAULT_MEMBERS,
+  type LineItem,
   type Member,
   type ScenarioProject,
 } from "@/lib/budget";
@@ -13,22 +15,28 @@ import ExpenseBreakdown from "./ExpenseBreakdown";
 import RevenueBreakdown from "./RevenueBreakdown";
 import TalentPool from "./TalentPool";
 import WhatIfPanel from "./WhatIfPanel";
+import EmployeeEarnings from "./EmployeeEarnings";
 import BudgetTable from "./BudgetTable";
 
-const MEMBERS_KEY = "audily.memberShares.v1";
+const MEMBERS_KEY = "rococopunch.memberShares.v1";
+const BUDGET_KEY = "rococopunch.budget.v1";
 
 export default function BudgetDashboard() {
   const [scenarios, setScenarios] = useState<ScenarioProject[]>([]);
   const [members, setMembers] = useState<Member[]>(DEFAULT_MEMBERS);
+  const [budget, setBudget] = useState<LineItem[]>(DEFAULT_BUDGET);
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(MEMBERS_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length === DEFAULT_MEMBERS.length) {
-          setMembers(parsed);
-        }
+      const m = localStorage.getItem(MEMBERS_KEY);
+      if (m) {
+        const parsed = JSON.parse(m);
+        if (Array.isArray(parsed) && parsed.length === DEFAULT_MEMBERS.length) setMembers(parsed);
+      }
+      const b = localStorage.getItem(BUDGET_KEY);
+      if (b) {
+        const parsed = JSON.parse(b);
+        if (Array.isArray(parsed) && parsed.length > 0) setBudget(parsed);
       }
     } catch {}
   }, []);
@@ -37,35 +45,39 @@ export default function BudgetDashboard() {
     setMembers(next);
     try { localStorage.setItem(MEMBERS_KEY, JSON.stringify(next)); } catch {}
   };
+  const updateBudget = (next: LineItem[]) => {
+    setBudget(next);
+    try { localStorage.setItem(BUDGET_KEY, JSON.stringify(next)); } catch {}
+  };
+  const resetBudget = () => updateBudget(DEFAULT_BUDGET);
 
   const baseline = useMemo(
-    () => computeBudget({ scenarios: [] }),
-    [],
+    () => computeBudget({ budget, scenarios: [] }),
+    [budget],
   );
-
   const current = useMemo(
-    () => computeBudget({ scenarios }),
-    [scenarios],
+    () => computeBudget({ budget, scenarios }),
+    [budget, scenarios],
   );
 
   const margin = current.totalRevenue > 0
-    ? current.freeCashFlowTotal / current.totalRevenue
+    ? current.talentPoolTotal / current.totalRevenue
     : 0;
   const baselineMargin = baseline.totalRevenue > 0
-    ? baseline.freeCashFlowTotal / baseline.totalRevenue
+    ? baseline.talentPoolTotal / baseline.totalRevenue
     : 0;
 
   return (
-    <div className="min-h-screen bg-ink-50">
-      <header className="sticky top-0 z-10 backdrop-blur bg-white/80 border-b border-ink-100">
+    <div className="min-h-screen bg-cream-50">
+      <header className="sticky top-0 z-10 backdrop-blur bg-cream-50/85 border-b border-ink-100">
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white font-semibold text-sm">
-              A
+            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white font-semibold text-base serif">
+              R
             </div>
             <div>
-              <div className="text-sm font-semibold text-ink-900 leading-tight">Audily Intranet</div>
-              <div className="text-[11px] text-ink-500 leading-tight">Transparent budget · 2026</div>
+              <div className="text-sm font-semibold text-ink-900 leading-tight serif">Rococo Punch Budget</div>
+              <div className="text-[11px] text-ink-500 leading-tight">Transparent intranet · 2026</div>
             </div>
           </div>
           <nav className="flex items-center gap-1 text-sm">
@@ -80,9 +92,9 @@ export default function BudgetDashboard() {
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-semibold text-ink-900 tracking-tight">Forward Projections — 2026</h1>
+            <h1 className="text-3xl font-semibold text-ink-900 tracking-tight serif">Forward Projections — 2026</h1>
             <p className="text-sm text-ink-500 mt-1">
-              All free cash flow is distributed pro rata to the talent pool.
+              Free cash flow flows into the talent profit pool. Losses carry forward — pool is never negative.
               {scenarios.length > 0 ? (
                 <span className="ml-2 chip bg-brand-100 text-brand-700">
                   {scenarios.length} what-if {scenarios.length === 1 ? "scenario" : "scenarios"} active
@@ -91,7 +103,7 @@ export default function BudgetDashboard() {
             </p>
           </div>
           <div className="text-xs text-ink-500">
-            Source: <span className="text-ink-700 font-medium">Profit Pool — Audily Forward Projections 2026 (Sheet9)</span>
+            Source: <span className="text-ink-700 font-medium">Profit Pool — Forward Projections 2026 (Sheet9)</span>
           </div>
         </div>
 
@@ -111,17 +123,18 @@ export default function BudgetDashboard() {
           />
           <MetricCard
             label="Talent Profit Pool"
-            value={current.freeCashFlowTotal}
-            sublabel="100% of free cash flow"
-            delta={current.freeCashFlowTotal - baseline.freeCashFlowTotal}
+            value={current.talentPoolTotal}
+            sublabel={current.yearEndCarry < 0
+              ? `carries -${Math.round(-current.yearEndCarry/1000)}k into '27`
+              : "100% to team, carry-forward"}
+            delta={current.talentPoolTotal - baseline.talentPoolTotal}
             tone="brand"
-            signed
           />
           <MetricCard
             label="Pool Margin"
             value={Math.round(margin * 100)}
             sublabel={`vs ${(baselineMargin * 100).toFixed(0)}% baseline`}
-            tone={margin >= 0 ? "good" : "bad"}
+            tone={margin > 0 ? "good" : "bad"}
             asPercent
           />
         </section>
@@ -136,7 +149,7 @@ export default function BudgetDashboard() {
         </section>
 
         <section>
-          <RevenueBreakdown />
+          <RevenueBreakdown budget={budget} />
         </section>
 
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -154,11 +167,20 @@ export default function BudgetDashboard() {
         </section>
 
         <section>
-          <BudgetTable calc={current} />
+          <EmployeeEarnings calc={current} members={members} />
+        </section>
+
+        <section>
+          <BudgetTable
+            calc={current}
+            budget={budget}
+            setBudget={updateBudget}
+            resetBudget={resetBudget}
+          />
         </section>
 
         <footer className="text-center text-xs text-ink-400 py-6">
-          Audily · internal · figures are projections, not guarantees · v0.3
+          Rococo Punch · internal · projections, not guarantees · v0.4
         </footer>
       </main>
     </div>

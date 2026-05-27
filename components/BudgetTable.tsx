@@ -1,20 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import type { Calculation, LineItemGroup } from "@/lib/budget";
-import { PROJECTED_MONTHS, BUDGET, formatCurrency, sumMonthly } from "@/lib/budget";
+import { Fragment } from "react";
+import type { Calculation, LineItem, LineItemGroup, MonthKey } from "@/lib/budget";
+import { PROJECTED_MONTHS, formatCurrency, sumMonthly } from "@/lib/budget";
 
-type Props = { calc: Calculation };
-
-type Row = {
-  label: string;
-  values: number[];
-  total: number;
-  bold?: boolean;
-  tone?: "good" | "bad" | "brand" | "muted";
-  divider?: boolean;
-  indent?: boolean;
+type Props = {
+  calc: Calculation;
+  budget: LineItem[];
+  setBudget: (b: LineItem[]) => void;
+  resetBudget: () => void;
 };
+
+const groupHeading = (g: LineItemGroup) => ({
+  revenue: "Revenue",
+  direct: "Direct Expenses",
+  overhead: "Overhead",
+  debt: "Debt Service",
+}[g]);
 
 const groupTotals = (calc: Calculation, group: LineItemGroup) => {
   switch (group) {
@@ -25,115 +27,129 @@ const groupTotals = (calc: Calculation, group: LineItemGroup) => {
   }
 };
 
-const groupHeading = (g: LineItemGroup) => ({
-  revenue: "Revenue",
-  direct: "Direct Expenses",
-  overhead: "Overhead",
-  debt: "Debt Service",
-}[g]);
+export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Props) {
+  const groups: LineItemGroup[] = ["revenue", "direct", "overhead", "debt"];
 
-const groupTone = (g: LineItemGroup): Row["tone"] =>
-  g === "revenue" ? "good" : "muted";
-
-export default function BudgetTable({ calc }: Props) {
-  const [open, setOpen] = useState(false);
+  const updateCell = (id: string, month: MonthKey, value: number) => {
+    setBudget(budget.map((item) =>
+      item.id === id ? { ...item, monthly: { ...item.monthly, [month]: value } } : item
+    ));
+  };
 
   const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
-
-  const rows: Row[] = [];
-  const groups: LineItemGroup[] = ["revenue", "direct", "overhead", "debt"];
-  for (const g of groups) {
-    const items = BUDGET.filter((b) => b.group === g);
-    const headerValues = groupTotals(calc, g);
-    rows.push({
-      label: groupHeading(g),
-      values: headerValues,
-      total: sum(headerValues),
-      bold: true,
-      tone: groupTone(g),
-      divider: g !== "revenue",
-    });
-    for (const item of items) {
-      const vals = PROJECTED_MONTHS.map((m) => item.monthly[m] || 0);
-      rows.push({
-        label: item.label,
-        values: vals,
-        total: sumMonthly(item.monthly),
-        indent: true,
-      });
-    }
-  }
-
   const fcf = PROJECTED_MONTHS.map((m) => calc.freeCashFlow[m] || 0);
-  rows.push({
-    label: "Talent Pool / FCF",
-    values: fcf,
-    total: sum(fcf),
-    bold: true,
-    tone: sum(fcf) >= 0 ? "brand" : "bad",
-    divider: true,
-  });
+  const tpp = PROJECTED_MONTHS.map((m) => calc.talentPool[m] || 0);
 
   return (
     <div className="card">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between p-5 text-left"
-      >
+      <div className="flex items-center justify-between p-5">
         <div>
-          <h3 className="text-sm font-semibold text-ink-900">Full monthly breakdown</h3>
-          <p className="text-xs text-ink-500">Line-by-line, May – Dec 2026</p>
+          <h3 className="text-sm font-semibold text-ink-900 serif">Editable budget — full monthly breakdown</h3>
+          <p className="text-xs text-ink-500 mt-0.5">
+            Click any number to edit · charts and pool update live · saved to this device
+          </p>
         </div>
-        <div className="text-ink-400 text-sm">{open ? "▾ Hide" : "▸ Show"}</div>
-      </button>
-      {open ? (
-        <div className="overflow-x-auto border-t border-ink-100">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-[11px] uppercase tracking-wider text-ink-500">
-                <th className="text-left font-medium px-5 py-2">Line</th>
-                {PROJECTED_MONTHS.map((m) => (
-                  <th key={m} className="text-right font-medium px-3 py-2 numeral">{m}</th>
-                ))}
-                <th className="text-right font-medium px-5 py-2 numeral">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr
-                  key={i}
-                  className={`${r.divider ? "border-t border-ink-100" : ""} ${r.bold ? "bg-ink-50/60" : ""}`}
-                >
-                  <td className={`py-2 ${r.indent ? "pl-9 pr-5" : "px-5"} ${r.bold ? "font-semibold text-ink-900" : r.indent ? "text-ink-500" : "text-ink-700"}`}>
-                    {r.label}
-                  </td>
-                  {r.values.map((v, idx) => (
-                    <td
-                      key={idx}
-                      className={`text-right px-3 py-2 numeral ${rowTone(r.tone)} ${r.bold ? "font-medium" : ""} ${r.indent ? "text-ink-500" : ""}`}
-                    >
-                      {v === 0 ? <span className="text-ink-300">—</span> : formatCurrency(v, { compact: true })}
-                    </td>
-                  ))}
-                  <td className={`text-right px-5 py-2 numeral font-semibold ${rowTone(r.tone)}`}>
-                    {formatCurrency(r.total)}
-                  </td>
-                </tr>
+        <button
+          onClick={resetBudget}
+          className="text-[11px] text-ink-500 hover:text-ink-900 underline underline-offset-2"
+        >
+          reset to defaults
+        </button>
+      </div>
+
+      <div className="overflow-x-auto border-t border-ink-100">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-[11px] uppercase tracking-wider text-ink-500 bg-cream-50/60">
+              <th className="text-left font-medium px-5 py-2 sticky left-0 bg-cream-50/95 z-10">Line</th>
+              {PROJECTED_MONTHS.map((m) => (
+                <th key={m} className="text-right font-medium px-3 py-2 numeral">{m}</th>
               ))}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
+              <th className="text-right font-medium px-5 py-2 numeral border-l border-ink-100">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {groups.map((g) => {
+              const items = budget.filter((b) => b.group === g);
+              const headerValues = groupTotals(calc, g);
+              return (
+                <Fragment key={g}>
+                  <tr className="bg-cream-50/60 border-t border-ink-100">
+                    <td className={`px-5 py-2 font-semibold text-sm sticky left-0 bg-cream-50/95 z-10 ${g === "revenue" ? "text-good-600" : "text-ink-700"}`}>
+                      {groupHeading(g)}
+                    </td>
+                    {headerValues.map((v, i) => (
+                      <td key={i} className={`text-right px-3 py-2 numeral font-medium ${g === "revenue" ? "text-good-600" : "text-ink-700"}`}>
+                        {v === 0 ? <span className="text-ink-300">—</span> : formatCurrency(v, { compact: true })}
+                      </td>
+                    ))}
+                    <td className={`text-right px-5 py-2 numeral font-semibold border-l border-ink-100 ${g === "revenue" ? "text-good-600" : "text-ink-700"}`}>
+                      {formatCurrency(sum(headerValues))}
+                    </td>
+                  </tr>
+                  {items.map((item) => (
+                    <tr key={item.id} className="hover:bg-cream-50/40">
+                      <td className="pl-9 pr-5 py-1 text-ink-600 text-sm sticky left-0 bg-white hover:bg-cream-50/40 z-10">{item.label}</td>
+                      {PROJECTED_MONTHS.map((m) => (
+                        <td key={m} className="px-2 py-1">
+                          <EditableNumber
+                            value={item.monthly[m] || 0}
+                            onChange={(v) => updateCell(item.id, m, v)}
+                          />
+                        </td>
+                      ))}
+                      <td className="text-right px-5 py-1 numeral text-ink-700 font-medium border-l border-ink-100">
+                        {formatCurrency(sumMonthly(item.monthly))}
+                      </td>
+                    </tr>
+                  ))}
+                </Fragment>
+              );
+            })}
+            <tr className="bg-cream-50/60 border-t border-ink-100">
+              <td className="px-5 py-2 font-semibold text-sm text-ink-700 sticky left-0 bg-cream-50/95 z-10">Free Cash Flow</td>
+              {fcf.map((v, i) => (
+                <td key={i} className={`text-right px-3 py-2 numeral font-medium ${v >= 0 ? "text-ink-700" : "text-bad-600"}`}>
+                  {v === 0 ? <span className="text-ink-300">—</span> : formatCurrency(v, { compact: true, signed: true })}
+                </td>
+              ))}
+              <td className="text-right px-5 py-2 numeral font-semibold border-l border-ink-100 text-ink-900">
+                {formatCurrency(calc.freeCashFlowTotal, { signed: true })}
+              </td>
+            </tr>
+            <tr className="bg-brand-50/40 border-t border-ink-100">
+              <td className="px-5 py-2 font-semibold text-sm text-brand-700 sticky left-0 bg-brand-50/80 z-10">Talent Pool (after carry-fwd)</td>
+              {tpp.map((v, i) => (
+                <td key={i} className="text-right px-3 py-2 numeral font-medium text-brand-700">
+                  {v === 0 ? <span className="text-ink-300">—</span> : formatCurrency(v, { compact: true })}
+                </td>
+              ))}
+              <td className="text-right px-5 py-2 numeral font-semibold border-l border-ink-100 text-brand-700">
+                {formatCurrency(calc.talentPoolTotal)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
-function rowTone(t?: Row["tone"]) {
-  switch (t) {
-    case "good": return "text-good-600";
-    case "bad": return "text-bad-600";
-    case "brand": return "text-brand-700";
-    case "muted": return "text-ink-500";
-    default: return "text-ink-900";
-  }
+function EditableNumber({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const display = value === 0 ? "" : String(Math.round(value));
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={display}
+      placeholder="—"
+      onChange={(e) => {
+        const raw = e.target.value.replace(/[^0-9.-]/g, "");
+        const n = parseFloat(raw);
+        onChange(Number.isFinite(n) ? n : 0);
+      }}
+      className="cell-input"
+      aria-label="cell value"
+    />
+  );
 }

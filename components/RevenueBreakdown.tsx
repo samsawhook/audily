@@ -1,12 +1,14 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { BUDGET, PROJECTED_MONTHS, formatCurrency, sumMonthly } from "@/lib/budget";
+import { PROJECTED_MONTHS, formatCurrency, sumMonthly, type LineItem } from "@/lib/budget";
 
-const PROJECT_COLORS = ["#7f47ff", "#9e76ff", "#bea7ff", "#5e12eb", "#420fa0", "#d9ceff"];
+const PROJECT_COLORS = ["#C8412E", "#DA5C3C", "#E78468", "#D9A02C", "#85261A", "#F1AC9C"];
 
-export default function RevenueBreakdown() {
-  const projects = BUDGET.filter((b) => b.group === "revenue").map((p, i) => ({
+type Props = { budget: LineItem[] };
+
+export default function RevenueBreakdown({ budget }: Props) {
+  const projects = budget.filter((b) => b.group === "revenue").map((p, i) => ({
     ...p,
     color: PROJECT_COLORS[i % PROJECT_COLORS.length],
     total: sumMonthly(p.monthly),
@@ -44,18 +46,18 @@ export default function RevenueBreakdown() {
         <div className="lg:col-span-2 h-56">
           <ResponsiveContainer>
             <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 4 }}>
-              <CartesianGrid stroke="#eeeef1" vertical={false} />
-              <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={12} stroke="#8b8b9c" />
+              <CartesianGrid stroke="#EEE9DD" vertical={false} />
+              <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={12} stroke="#8B8270" />
               <YAxis
                 tickLine={false}
                 axisLine={false}
                 fontSize={12}
-                stroke="#8b8b9c"
+                stroke="#8B8270"
                 tickFormatter={(v) => formatCurrency(v, { compact: true })}
               />
               <Tooltip
-                cursor={{ fill: "rgba(127,71,255,0.06)" }}
-                contentStyle={{ borderRadius: 12, border: "1px solid #eeeef1", boxShadow: "0 4px 16px rgba(15,15,25,0.06)" }}
+                cursor={{ fill: "rgba(200,65,46,0.06)" }}
+                contentStyle={{ borderRadius: 12, border: "1px solid #EEE9DD", boxShadow: "0 4px 16px rgba(26,22,18,0.06)" }}
                 formatter={(v: number, name: string) => [formatCurrency(v), name]}
               />
               {projects.map((p, i) => (

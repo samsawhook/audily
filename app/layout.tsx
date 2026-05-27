@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Audily Intranet",
-  description: "Transparent budget and talent profit pool for Audily.",
+  title: "Rococo Punch Budget",
+  description: "Transparent budget and talent profit pool for Rococo Punch.",
 };
 
 export default function RootLayout({

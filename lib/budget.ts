@@ -8,7 +8,7 @@ export const PROJECTED_MONTHS: MonthKey[] = [
 
 export type MonthlyMap = Record<MonthKey, number>;
 
-const zeroMap = (): MonthlyMap => ({
+export const zeroMap = (): MonthlyMap => ({
   Jan: 0, Feb: 0, Mar: 0, Apr: 0,
   May: 0, Jun: 0, Jul: 0, Aug: 0,
   Sep: 0, Oct: 0, Nov: 0, Dec: 0,
@@ -37,11 +37,8 @@ export type LineItem = {
   monthly: MonthlyMap;
 };
 
-// Source: Profit Pool — Audily Forward Projections 2026 (sheet9, May–Dec)
-// plus owner updates: per-show revenue, detailed direct expenses,
-// flat $5k/mo overhead split four ways, $5k/mo debt service.
-export const BUDGET: LineItem[] = [
-  // Revenue — Rococo Punch by show / client
+// Default budget — owner-updated 2026 projection.
+export const DEFAULT_BUDGET: LineItem[] = [
   { id: "rev_chronicle",  label: "Chronicle",  group: "revenue", monthly: fromProjected([10000, 0,     0,     0,      0,     0,     0,     0]) },
   { id: "rev_cep",        label: "CEP",        group: "revenue", monthly: fromProjected([20000, 0,     20000, 0,      20000, 0,     20000, 0]) },
   { id: "rev_kscope",     label: "Kscope",     group: "revenue", monthly: fromProjected([0,     0,     0,     0,      0,     0,     0,     0]) },
@@ -49,7 +46,6 @@ export const BUDGET: LineItem[] = [
   { id: "rev_bu",         label: "BU",         group: "revenue", monthly: fromProjected([0,     0,     0,     12000,  0,     0,     0,     0]) },
   { id: "rev_wme",        label: "WME",        group: "revenue", monthly: fromProjected([0,     0,     0,     135000, 0,     0,     0,     0]) },
 
-  // Direct expenses — Rococo Punch operating ($12,800 / mo)
   { id: "dir_discretionary",  label: "Discretionary",      group: "direct", monthly: flat(500)  },
   { id: "dir_marketing",      label: "Marketing & Travel", group: "direct", monthly: flat(500)  },
   { id: "dir_ga",             label: "G&A",                group: "direct", monthly: flat(100)  },
@@ -57,20 +53,18 @@ export const BUDGET: LineItem[] = [
   { id: "dir_software_apps",  label: "Software & Apps",    group: "direct", monthly: flat(200)  },
   { id: "dir_health",         label: "Health Insurance",   group: "direct", monthly: flat(3500) },
 
-  // Overhead — $5k / mo, split evenly between four lines
   { id: "oh_insurance",   label: "Insurance",   group: "overhead", monthly: flat(1250) },
   { id: "oh_software",    label: "Software",    group: "overhead", monthly: flat(1250) },
   { id: "oh_legal",       label: "Legal",       group: "overhead", monthly: flat(1250) },
   { id: "oh_bookkeeping", label: "Bookkeeping", group: "overhead", monthly: flat(1250) },
 
-  // Debt service
   { id: "debt_service", label: "Debt Service", group: "debt", monthly: flat(5000) },
 ];
 
 export type Member = {
   id: string;
   name: string;
-  share: number; // raw share, normalized at distribution time
+  share: number;
 };
 
 export const DEFAULT_MEMBERS: Member[] = [
@@ -109,9 +103,16 @@ export type Calculation = {
   totalExpenses: number;
   freeCashFlow: MonthlyMap;
   freeCashFlowTotal: number;
+  // Talent Profit Pool — never negative; losses carry forward to be
+  // recovered out of the next positive month before any TPP is paid.
+  talentPool: MonthlyMap;
+  talentPoolTotal: number;
+  carryBalance: MonthlyMap; // running balance at end of each month (<= 0 means deficit carrying forward)
+  yearEndCarry: number;     // <= 0; deficit that didn't get recovered before Dec
 };
 
 export type CalcOptions = {
+  budget: LineItem[];
   scenarios: ScenarioProject[];
 };
 
@@ -146,7 +147,7 @@ export const computeBudget = (opts: CalcOptions): Calculation => {
   let overhead = empty;
   let debt = empty;
 
-  for (const item of BUDGET) {
+  for (const item of opts.budget) {
     switch (item.group) {
       case "revenue":  revenue  = accMap(revenue,  item.monthly); break;
       case "direct":   direct   = accMap(direct,   item.monthly); break;
@@ -165,6 +166,21 @@ export const computeBudget = (opts: CalcOptions): Calculation => {
     freeCashFlow[m] = (revenue[m] || 0) - (direct[m] || 0) - (overhead[m] || 0) - (debt[m] || 0);
   }
 
+  // Carry-forward TPP: losses recover out of the next positive month.
+  const talentPool = zeroMap();
+  const carryBalance = zeroMap();
+  let balance = 0;
+  for (const m of PROJECTED_MONTHS) {
+    balance += freeCashFlow[m];
+    if (balance > 0) {
+      talentPool[m] = balance;
+      balance = 0;
+    } else {
+      talentPool[m] = 0;
+    }
+    carryBalance[m] = balance;
+  }
+
   return {
     revenue, direct, overhead, debt,
     totalRevenue: sumMonthly(revenue),
@@ -174,12 +190,16 @@ export const computeBudget = (opts: CalcOptions): Calculation => {
     totalExpenses: sumMonthly(direct) + sumMonthly(overhead) + sumMonthly(debt),
     freeCashFlow,
     freeCashFlowTotal: sumMonthly(freeCashFlow),
+    talentPool,
+    talentPoolTotal: sumMonthly(talentPool),
+    carryBalance,
+    yearEndCarry: balance,
   };
 };
 
 export type MemberDistribution = {
   member: Member;
-  normalizedShare: number; // 0..1
+  normalizedShare: number;
   amount: number;
 };
 
@@ -193,6 +213,34 @@ export const distributePool = (pool: number, members: Member[]): MemberDistribut
       normalizedShare: normalized,
       amount: pool > 0 ? pool * normalized : 0,
     };
+  });
+};
+
+export type MemberEarnings = {
+  member: Member;
+  normalizedShare: number;
+  monthly: MonthlyMap;
+  total: number;
+  avgMonthly: number;     // total / months in period (8)
+  annualized: number;     // total × 12 / months in period
+};
+
+export const computeMemberEarnings = (
+  members: Member[],
+  tpp: MonthlyMap,
+): MemberEarnings[] => {
+  const shareSum = members.reduce((a, m) => a + Math.max(0, m.share), 0);
+  const periodMonths = PROJECTED_MONTHS.length;
+  return members.map((m) => {
+    const normalized = shareSum > 0 ? Math.max(0, m.share) / shareSum : 0;
+    const monthly = zeroMap();
+    for (const k of PROJECTED_MONTHS) {
+      monthly[k] = (tpp[k] || 0) * normalized;
+    }
+    const total = sumMonthly(monthly);
+    const avgMonthly = total / periodMonths;
+    const annualized = total * (12 / periodMonths);
+    return { member: m, normalizedShare: normalized, monthly, total, avgMonthly, annualized };
   });
 };
 

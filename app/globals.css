@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --background: #f7f7f8;
-  --foreground: #18181d;
+  --background: #FDFAF4;
+  --foreground: #1A1612;
 }
 
 html, body {
@@ -19,8 +19,12 @@ html, body {
   font-feature-settings: "tnum";
 }
 
+.serif {
+  font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+}
+
 .card {
-  @apply bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(15,15,25,0.04)];
+  @apply bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(26,22,18,0.04)];
 }
 
 .chip {
@@ -33,3 +37,9 @@ input[type="number"]::-webkit-inner-spin-button {
   margin: 0;
 }
 input[type="number"] { -moz-appearance: textfield; }
+
+.cell-input {
+  @apply w-full text-right bg-transparent px-2 py-1 rounded-md border border-transparent
+         hover:border-ink-200 focus:border-brand-500 focus:bg-white focus:outline-none
+         focus:ring-2 focus:ring-brand-100 transition numeral;
+}
