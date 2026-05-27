@@ -19,7 +19,8 @@ type Props = {
 const MEMBER_COLORS = ["#F47369", "#B83C32", "#737373"];
 
 export default function TalentPool({ calc, members, setMembers }: Props) {
-  const pool = calc.talentPoolTotal;
+  const isTpp = calc.mode === "tpp";
+  const pool = calc.compTotal;
   const distributions = useMemo(() => distributePool(pool, members), [pool, members]);
   const shareSum = members.reduce((a, m) => a + Math.max(0, m.share), 0);
   const balanced = Math.round(shareSum) === 100;
@@ -30,18 +31,21 @@ export default function TalentPool({ calc, members, setMembers }: Props) {
 
   const monthlyData = PROJECTED_MONTHS.map((m) => ({
     month: m,
-    tpp: calc.talentPool[m] || 0,
-    fcf: calc.freeCashFlow[m] || 0,
+    comp: calc.comp[m] || 0,
   }));
+
+  const title = isTpp ? "Talent Profit Pool" : "Salary Distribution";
+  const subtitle = isTpp
+    ? "Losses carry forward · pool is never negative · distributed pro rata"
+    : "Fixed monthly salaries — $25,100/mo total, split by share";
+  const sizeLabel = isTpp ? "Annual TPP — May–Dec 2026" : "Annual salaries — May–Dec 2026";
 
   return (
     <div className="card p-5 h-full flex flex-col">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold text-ink-900">Talent Profit Pool</h3>
-          <p className="text-xs text-ink-500 mt-0.5">
-            Losses carry forward · pool is never negative · distributed pro rata
-          </p>
+          <h3 className="text-sm font-semibold text-ink-900">{title}</h3>
+          <p className="text-xs text-ink-500 mt-0.5">{subtitle}</p>
         </div>
         <button
           onClick={() => setMembers(DEFAULT_MEMBERS)}
@@ -51,18 +55,22 @@ export default function TalentPool({ calc, members, setMembers }: Props) {
         </button>
       </div>
 
-      {/* Pool size */}
       <div className="mt-4 rounded-2xl bg-gradient-to-br from-brand-50 to-paper-100 border border-brand-100 p-4">
         <div className="text-[10px] uppercase tracking-wider text-brand-700 font-semibold">
-          Annual TPP — May–Dec 2026
+          {sizeLabel}
         </div>
         <div className="mt-1 flex items-baseline gap-3">
           <div className="numeral text-3xl font-bold text-brand-700">
             {formatCurrency(pool)}
           </div>
-          {calc.yearEndCarry < 0 ? (
+          {isTpp && calc.yearEndCarry < 0 ? (
             <div className="text-xs text-bad-600">
               {formatCurrency(calc.yearEndCarry)} deficit carries to 2027
+            </div>
+          ) : null}
+          {!isTpp ? (
+            <div className="text-xs text-ink-500">
+              + {formatCurrency(calc.totalEmployerTax)} employer tax
             </div>
           ) : null}
         </div>
@@ -72,13 +80,13 @@ export default function TalentPool({ calc, members, setMembers }: Props) {
               <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={10} stroke="#737373" />
               <YAxis hide />
               <Tooltip
-                cursor={{ fill: "rgba(200,65,46,0.08)" }}
+                cursor={{ fill: "rgba(244,115,105,0.08)" }}
                 contentStyle={{ borderRadius: 12, border: "1px solid #EFEFEF", padding: "4px 8px" }}
-                formatter={(v: number, name: string) => [formatCurrency(v, { signed: name === "FCF" }), name]}
+                formatter={(v: number) => [formatCurrency(v), isTpp ? "TPP" : "Salary"]}
               />
-              <Bar dataKey="tpp" name="TPP" radius={[4, 4, 0, 0]}>
+              <Bar dataKey="comp" name={isTpp ? "TPP" : "Salary"} radius={[4, 4, 0, 0]}>
                 {monthlyData.map((d, i) => (
-                  <Cell key={i} fill={d.tpp > 0 ? "#F47369" : "#EFEFEF"} />
+                  <Cell key={i} fill={d.comp > 0 ? "#F47369" : "#EFEFEF"} />
                 ))}
               </Bar>
             </BarChart>
@@ -86,13 +94,12 @@ export default function TalentPool({ calc, members, setMembers }: Props) {
         </div>
       </div>
 
-      {/* Members */}
       <div className="mt-4 space-y-3">
         {distributions.map((d, idx) => {
           const color = MEMBER_COLORS[idx % MEMBER_COLORS.length];
           const initials = d.member.name.split(" ").map((p) => p[0]).join("").slice(0, 2);
           return (
-            <div key={d.member.id} className="rounded-xl border border-ink-100 p-3">
+            <div key={d.member.id} className="rounded-xl border border-paper-300 p-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div

@@ -12,13 +12,19 @@ export default function ExpenseBreakdown({ calc }: Props) {
     { name: "Overhead", value: calc.totalOverhead, color: "#737373" },
     { name: "Debt Service", value: calc.totalDebt, color: "#B83C32" },
   ];
+  if (calc.mode === "salary") {
+    slices.push({ name: "Salary", value: calc.totalSalary, color: "#F89588" });
+    slices.push({ name: "Employer Tax", value: calc.totalEmployerTax, color: "#404040" });
+  }
   const total = slices.reduce((a, s) => a + s.value, 0);
 
   return (
     <div className="card p-5 h-full">
       <div className="mb-3">
         <h3 className="text-sm font-semibold text-ink-900">Where the money goes</h3>
-        <p className="text-xs text-ink-500">Operating outflows, May–Dec</p>
+        <p className="text-xs text-ink-500">
+          {calc.mode === "salary" ? "Operating costs + salary + tax" : "Operating outflows"}, May–Dec
+        </p>
       </div>
       <div className="h-56 relative">
         <ResponsiveContainer>

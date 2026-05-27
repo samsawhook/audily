@@ -5,11 +5,13 @@ import {
   computeBudget,
   DEFAULT_BUDGET,
   DEFAULT_MEMBERS,
+  type CompMode,
   type LineItem,
   type Member,
   type ScenarioProject,
 } from "@/lib/budget";
 import AsteriskLogo from "./AsteriskLogo";
+import CompModeToggle from "./CompModeToggle";
 import MetricCard from "./MetricCard";
 import MonthlyChart from "./MonthlyChart";
 import ExpenseBreakdown from "./ExpenseBreakdown";
@@ -21,11 +23,13 @@ import BudgetTable from "./BudgetTable";
 
 const MEMBERS_KEY = "rococopunch.memberShares.v1";
 const BUDGET_KEY = "rococopunch.budget.v1";
+const COMP_MODE_KEY = "rococopunch.compMode.v1";
 
 export default function BudgetDashboard() {
   const [scenarios, setScenarios] = useState<ScenarioProject[]>([]);
   const [members, setMembers] = useState<Member[]>(DEFAULT_MEMBERS);
   const [budget, setBudget] = useState<LineItem[]>(DEFAULT_BUDGET);
+  const [compMode, setCompMode] = useState<CompMode>("tpp");
 
   useEffect(() => {
     try {
@@ -39,6 +43,8 @@ export default function BudgetDashboard() {
         const parsed = JSON.parse(b);
         if (Array.isArray(parsed) && parsed.length > 0) setBudget(parsed);
       }
+      const mode = localStorage.getItem(COMP_MODE_KEY);
+      if (mode === "tpp" || mode === "salary") setCompMode(mode);
     } catch {}
   }, []);
 
@@ -50,23 +56,29 @@ export default function BudgetDashboard() {
     setBudget(next);
     try { localStorage.setItem(BUDGET_KEY, JSON.stringify(next)); } catch {}
   };
+  const updateCompMode = (next: CompMode) => {
+    setCompMode(next);
+    try { localStorage.setItem(COMP_MODE_KEY, next); } catch {}
+  };
   const resetBudget = () => updateBudget(DEFAULT_BUDGET);
 
   const baseline = useMemo(
-    () => computeBudget({ budget, scenarios: [] }),
-    [budget],
+    () => computeBudget({ budget, scenarios: [], compMode }),
+    [budget, compMode],
   );
   const current = useMemo(
-    () => computeBudget({ budget, scenarios }),
-    [budget, scenarios],
+    () => computeBudget({ budget, scenarios, compMode }),
+    [budget, scenarios, compMode],
   );
 
-  const margin = current.totalRevenue > 0
-    ? current.talentPoolTotal / current.totalRevenue
-    : 0;
-  const baselineMargin = baseline.totalRevenue > 0
-    ? baseline.talentPoolTotal / baseline.totalRevenue
-    : 0;
+  const compLabel = compMode === "tpp" ? "Talent Profit Pool" : "Salaries & Tax";
+  const compSublabel = compMode === "tpp"
+    ? (current.yearEndCarry < 0
+        ? `carries -${Math.round(-current.yearEndCarry / 1000)}k into '27`
+        : "100% to team, carry-forward")
+    : "$25,100/mo salaries + $4,267/mo tax";
+
+  const netTone = current.companyNetTotal >= 0 ? "good" : "bad";
 
   return (
     <div className="min-h-screen bg-paper-200">
@@ -94,7 +106,9 @@ export default function BudgetDashboard() {
           <div>
             <h1 className="wordmark text-3xl text-ink-900">Forward Projections <span className="text-brand-500">·</span> 2026</h1>
             <p className="text-sm text-ink-500 mt-1">
-              Free cash flow flows into the talent profit pool. Losses carry forward — pool is never negative.
+              {compMode === "tpp"
+                ? "Free cash flow flows into the talent profit pool. Losses carry forward — pool is never negative."
+                : "Fixed monthly salaries: $25,100 + $4,267 employer tax. Company net is what's left after."}
               {scenarios.length > 0 ? (
                 <span className="ml-2 chip bg-brand-100 text-brand-700">
                   {scenarios.length} what-if {scenarios.length === 1 ? "scenario" : "scenarios"} active
@@ -102,8 +116,8 @@ export default function BudgetDashboard() {
               ) : null}
             </p>
           </div>
-          <div className="text-xs text-ink-500">
-            Source: <span className="text-ink-700 font-medium">Profit Pool — Forward Projections 2026 (Sheet9)</span>
+          <div className="flex items-center gap-3">
+            <CompModeToggle value={compMode} onChange={updateCompMode} />
           </div>
         </div>
 
@@ -117,25 +131,24 @@ export default function BudgetDashboard() {
           />
           <MetricCard
             label="Operating Expenses"
-            value={current.totalExpenses}
+            value={current.totalOpEx}
             sublabel="Direct + Overhead + Debt"
-            delta={current.totalExpenses - baseline.totalExpenses}
+            delta={current.totalOpEx - baseline.totalOpEx}
           />
           <MetricCard
-            label="Talent Profit Pool"
-            value={current.talentPoolTotal}
-            sublabel={current.yearEndCarry < 0
-              ? `carries -${Math.round(-current.yearEndCarry/1000)}k into '27`
-              : "100% to team, carry-forward"}
-            delta={current.talentPoolTotal - baseline.talentPoolTotal}
+            label={compLabel}
+            value={current.compCostTotal}
+            sublabel={compSublabel}
+            delta={current.compCostTotal - baseline.compCostTotal}
             tone="brand"
           />
           <MetricCard
-            label="Pool Margin"
-            value={Math.round(margin * 100)}
-            sublabel={`vs ${(baselineMargin * 100).toFixed(0)}% baseline`}
-            tone={margin > 0 ? "good" : "bad"}
-            asPercent
+            label="Company Net"
+            value={current.companyNetTotal}
+            sublabel={current.companyNetTotal >= 0 ? "after comp" : "after comp · burn"}
+            delta={current.companyNetTotal - baseline.companyNetTotal}
+            tone={netTone}
+            signed
           />
         </section>
 
@@ -180,7 +193,7 @@ export default function BudgetDashboard() {
         </section>
 
         <footer className="text-center text-xs text-ink-400 py-6">
-          Rococo Punch · internal · projections, not guarantees · v0.4
+          Rococo Punch · internal · projections, not guarantees · v0.6
         </footer>
       </main>
     </div>

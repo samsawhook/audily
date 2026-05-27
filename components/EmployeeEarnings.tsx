@@ -11,7 +11,8 @@ type Props = {
 };
 
 export default function EmployeeEarnings({ calc, members }: Props) {
-  const earnings = computeMemberEarnings(members, calc.talentPool);
+  const earnings = computeMemberEarnings(members, calc.comp);
+  const isTpp = calc.mode === "tpp";
 
   return (
     <div className="card">
@@ -19,9 +20,13 @@ export default function EmployeeEarnings({ calc, members }: Props) {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold text-ink-900">Earnings by member</h3>
-            <p className="text-xs text-ink-500">From TPP after loss carry-forward · run-rate for 2027 in <span className="italic font-medium">Annualized</span></p>
+            <p className="text-xs text-ink-500">
+              {isTpp
+                ? <>From TPP after loss carry-forward · run-rate for 2027 in <span className="italic font-medium">Annualized</span></>
+                : <>Fixed monthly salaries split by share · run-rate for 2027 in <span className="italic font-medium">Annualized</span></>}
+            </p>
           </div>
-          {calc.yearEndCarry < 0 ? (
+          {isTpp && calc.yearEndCarry < 0 ? (
             <div className="chip bg-bad-500/10 text-bad-600">
               Year-end deficit {formatCurrency(calc.yearEndCarry)} carries to '27
             </div>
@@ -29,7 +34,7 @@ export default function EmployeeEarnings({ calc, members }: Props) {
         </div>
       </div>
 
-      <div className="overflow-x-auto border-t border-ink-100">
+      <div className="overflow-x-auto border-t border-paper-300">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-[11px] uppercase tracking-wider text-ink-500 bg-paper-100/60">
@@ -37,7 +42,7 @@ export default function EmployeeEarnings({ calc, members }: Props) {
               {PROJECTED_MONTHS.map((m) => (
                 <th key={m} className="text-right font-medium px-3 py-2 numeral">{m}</th>
               ))}
-              <th className="text-right font-medium px-3 py-2 numeral border-l border-ink-100">Total</th>
+              <th className="text-right font-medium px-3 py-2 numeral border-l border-paper-300">Total</th>
               <th className="text-right font-medium px-3 py-2 numeral">Avg/mo</th>
               <th className="text-right font-medium px-5 py-2 numeral italic">Annualized</th>
             </tr>
@@ -47,7 +52,7 @@ export default function EmployeeEarnings({ calc, members }: Props) {
               const color = MEMBER_COLORS[idx % MEMBER_COLORS.length];
               const initials = e.member.name.split(" ").map((p) => p[0]).join("").slice(0, 2);
               return (
-                <tr key={e.member.id} className="border-t border-ink-100">
+                <tr key={e.member.id} className="border-t border-paper-300">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2.5">
                       <div
@@ -70,7 +75,7 @@ export default function EmployeeEarnings({ calc, members }: Props) {
                       </td>
                     );
                   })}
-                  <td className="text-right px-3 py-3 numeral font-semibold text-brand-700 border-l border-ink-100">
+                  <td className="text-right px-3 py-3 numeral font-semibold text-brand-700 border-l border-paper-300">
                     {formatCurrency(e.total)}
                   </td>
                   <td className="text-right px-3 py-3 numeral text-ink-700">
@@ -83,23 +88,25 @@ export default function EmployeeEarnings({ calc, members }: Props) {
               );
             })}
             <tr className="border-t-2 border-ink-200 bg-paper-100/60">
-              <td className="px-5 py-3 text-sm font-semibold text-ink-900">Total pool</td>
+              <td className="px-5 py-3 text-sm font-semibold text-ink-900">
+                {isTpp ? "Total pool" : "Total salary"}
+              </td>
               {PROJECTED_MONTHS.map((m) => {
-                const v = calc.talentPool[m] || 0;
+                const v = calc.comp[m] || 0;
                 return (
                   <td key={m} className={`text-right px-3 py-3 numeral font-medium ${v > 0 ? "text-ink-900" : "text-ink-300"}`}>
                     {v > 0 ? formatCurrency(v, { compact: true }) : "—"}
                   </td>
                 );
               })}
-              <td className="text-right px-3 py-3 numeral font-semibold text-brand-700 border-l border-ink-100">
-                {formatCurrency(calc.talentPoolTotal)}
+              <td className="text-right px-3 py-3 numeral font-semibold text-brand-700 border-l border-paper-300">
+                {formatCurrency(calc.compTotal)}
               </td>
               <td className="text-right px-3 py-3 numeral text-ink-700">
-                {formatCurrency(calc.talentPoolTotal / PROJECTED_MONTHS.length)}
+                {formatCurrency(calc.compTotal / PROJECTED_MONTHS.length)}
               </td>
               <td className="text-right px-5 py-3 numeral italic font-semibold text-ink-900">
-                {formatCurrency(calc.talentPoolTotal * (12 / PROJECTED_MONTHS.length))}
+                {formatCurrency(calc.compTotal * (12 / PROJECTED_MONTHS.length))}
               </td>
             </tr>
           </tbody>

@@ -45,8 +45,8 @@ export default function WhatIfPanel({ scenarios, setScenarios, baseline, current
   const remove = (id: string) => setScenarios(scenarios.filter((s) => s.id !== id));
 
   const revDelta = current.totalRevenue - baseline.totalRevenue;
-  const poolDelta = current.talentPoolTotal - baseline.talentPoolTotal;
-  const costDelta = current.totalExpenses - baseline.totalExpenses;
+  const compDelta = current.compTotal - baseline.compTotal;
+  const netDelta = current.companyNetTotal - baseline.companyNetTotal;
 
   return (
     <div className="card p-5 h-full flex flex-col">
@@ -162,8 +162,8 @@ export default function WhatIfPanel({ scenarios, setScenarios, baseline, current
         <div className="text-[10px] uppercase tracking-wider text-ink-500 mb-2">Impact vs baseline</div>
         <div className="grid grid-cols-3 gap-2">
           <Impact label="Revenue" value={revDelta} good={revDelta >= 0} />
-          <Impact label="Expenses" value={costDelta} good={costDelta <= 0} />
-          <Impact label="Pool" value={poolDelta} good={poolDelta >= 0} brand />
+          <Impact label={current.mode === "tpp" ? "TPP" : "Comp"} value={compDelta} good={compDelta >= 0} brand />
+          <Impact label="Company net" value={netDelta} good={netDelta >= 0} />
         </div>
       </div>
     </div>

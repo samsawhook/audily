@@ -37,6 +37,10 @@ export type LineItem = {
   monthly: MonthlyMap;
 };
 
+// Original sheet9 compensation figures — used when compMode === "salary".
+export const SALARY_MONTHLY = 25100;
+export const EMPLOYER_TAX_MONTHLY = 4267;
+
 // Default budget — owner-updated 2026 projection.
 export const DEFAULT_BUDGET: LineItem[] = [
   { id: "rev_chronicle",  label: "Chronicle",  group: "revenue", monthly: fromProjected([10000, 0,     0,     0,      0,     0,     0,     0]) },
@@ -91,29 +95,52 @@ export const monthsRemaining = (start: MonthKey): MonthKey[] => {
   return PROJECTED_MONTHS.slice(idx);
 };
 
+export type CompMode = "tpp" | "salary";
+
 export type Calculation = {
   revenue: MonthlyMap;
   direct: MonthlyMap;
   overhead: MonthlyMap;
   debt: MonthlyMap;
+  // Compensation (depends on mode)
+  salary: MonthlyMap;       // populated only when mode = "salary"
+  employerTax: MonthlyMap;  // populated only when mode = "salary"
   totalRevenue: number;
   totalDirect: number;
   totalOverhead: number;
   totalDebt: number;
-  totalExpenses: number;
+  totalSalary: number;
+  totalEmployerTax: number;
+  totalOpEx: number;        // direct + overhead + debt (unchanged across modes)
+  totalExpenses: number;    // opex + (salary + tax in salary mode)
+  // Free cash flow before compensation is paid
+  preCompFcf: MonthlyMap;
+  preCompFcfTotal: number;
+  // Compensation that lands in members' pockets
+  // (TPP carry-fwd in tpp mode, salary in salary mode — never includes employer tax)
+  comp: MonthlyMap;
+  compTotal: number;
+  // Compensation cost to the company (comp + employer tax in salary mode)
+  compCost: MonthlyMap;
+  compCostTotal: number;
+  // Free cash flow as historically defined (after all expenses including comp)
   freeCashFlow: MonthlyMap;
   freeCashFlowTotal: number;
-  // Talent Profit Pool — never negative; losses carry forward to be
-  // recovered out of the next positive month before any TPP is paid.
+  // TPP — carry-forward pool; only meaningful when mode = "tpp"
   talentPool: MonthlyMap;
   talentPoolTotal: number;
-  carryBalance: MonthlyMap; // running balance at end of each month (<= 0 means deficit carrying forward)
-  yearEndCarry: number;     // <= 0; deficit that didn't get recovered before Dec
+  carryBalance: MonthlyMap;
+  yearEndCarry: number;
+  // Company net (revenue − all expenses including comp)
+  companyNet: MonthlyMap;
+  companyNetTotal: number;
+  mode: CompMode;
 };
 
 export type CalcOptions = {
   budget: LineItem[];
   scenarios: ScenarioProject[];
+  compMode: CompMode;
 };
 
 const accMap = (
@@ -161,17 +188,28 @@ export const computeBudget = (opts: CalcOptions): Calculation => {
     direct = accMap(direct, scenarioToMonthly(s, "productionCost"));
   }
 
-  const freeCashFlow = zeroMap();
-  for (const m of PROJECTED_MONTHS) {
-    freeCashFlow[m] = (revenue[m] || 0) - (direct[m] || 0) - (overhead[m] || 0) - (debt[m] || 0);
+  // Salary/tax line items only apply in salary mode
+  const salary = zeroMap();
+  const employerTax = zeroMap();
+  if (opts.compMode === "salary") {
+    for (const m of PROJECTED_MONTHS) {
+      salary[m] = SALARY_MONTHLY;
+      employerTax[m] = EMPLOYER_TAX_MONTHLY;
+    }
   }
 
-  // Carry-forward TPP: losses recover out of the next positive month.
+  // FCF before compensation (used as the basis for TPP)
+  const preCompFcf = zeroMap();
+  for (const m of PROJECTED_MONTHS) {
+    preCompFcf[m] = (revenue[m] || 0) - (direct[m] || 0) - (overhead[m] || 0) - (debt[m] || 0);
+  }
+
+  // Carry-forward TPP (only meaningful in TPP mode)
   const talentPool = zeroMap();
   const carryBalance = zeroMap();
   let balance = 0;
   for (const m of PROJECTED_MONTHS) {
-    balance += freeCashFlow[m];
+    balance += preCompFcf[m];
     if (balance > 0) {
       talentPool[m] = balance;
       balance = 0;
@@ -180,20 +218,54 @@ export const computeBudget = (opts: CalcOptions): Calculation => {
     }
     carryBalance[m] = balance;
   }
+  const yearEndCarry = opts.compMode === "tpp" ? balance : 0;
+
+  // Comp paid to members this month (tpp = pool, salary mode = salary only — never tax)
+  const comp = zeroMap();
+  // Comp cost to the company this month (members' comp + employer tax in salary mode)
+  const compCost = zeroMap();
+  for (const m of PROJECTED_MONTHS) {
+    comp[m] = opts.compMode === "tpp" ? talentPool[m] : (salary[m] || 0);
+    compCost[m] = comp[m] + (employerTax[m] || 0);
+  }
+
+  // Final FCF after comp cost; same as company net in both modes
+  const freeCashFlow = zeroMap();
+  const companyNet = zeroMap();
+  for (const m of PROJECTED_MONTHS) {
+    const v = preCompFcf[m] - compCost[m];
+    freeCashFlow[m] = v;
+    companyNet[m] = v;
+  }
+
+  const totalDirect = sumMonthly(direct);
+  const totalOverhead = sumMonthly(overhead);
+  const totalDebt = sumMonthly(debt);
+  const totalSalary = sumMonthly(salary);
+  const totalEmployerTax = sumMonthly(employerTax);
+  const totalOpEx = totalDirect + totalOverhead + totalDebt;
 
   return {
-    revenue, direct, overhead, debt,
+    revenue, direct, overhead, debt, salary, employerTax,
     totalRevenue: sumMonthly(revenue),
-    totalDirect: sumMonthly(direct),
-    totalOverhead: sumMonthly(overhead),
-    totalDebt: sumMonthly(debt),
-    totalExpenses: sumMonthly(direct) + sumMonthly(overhead) + sumMonthly(debt),
+    totalDirect, totalOverhead, totalDebt, totalSalary, totalEmployerTax,
+    totalOpEx,
+    totalExpenses: totalOpEx + totalSalary + totalEmployerTax,
+    preCompFcf,
+    preCompFcfTotal: sumMonthly(preCompFcf),
+    comp,
+    compTotal: sumMonthly(comp),
+    compCost,
+    compCostTotal: sumMonthly(compCost),
     freeCashFlow,
     freeCashFlowTotal: sumMonthly(freeCashFlow),
-    talentPool,
-    talentPoolTotal: sumMonthly(talentPool),
+    talentPool: opts.compMode === "tpp" ? talentPool : zeroMap(),
+    talentPoolTotal: opts.compMode === "tpp" ? sumMonthly(talentPool) : 0,
     carryBalance,
-    yearEndCarry: balance,
+    yearEndCarry,
+    companyNet,
+    companyNetTotal: sumMonthly(companyNet),
+    mode: opts.compMode,
   };
 };
 
@@ -227,7 +299,7 @@ export type MemberEarnings = {
 
 export const computeMemberEarnings = (
   members: Member[],
-  tpp: MonthlyMap,
+  comp: MonthlyMap,
 ): MemberEarnings[] => {
   const shareSum = members.reduce((a, m) => a + Math.max(0, m.share), 0);
   const periodMonths = PROJECTED_MONTHS.length;
@@ -235,7 +307,7 @@ export const computeMemberEarnings = (
     const normalized = shareSum > 0 ? Math.max(0, m.share) / shareSum : 0;
     const monthly = zeroMap();
     for (const k of PROJECTED_MONTHS) {
-      monthly[k] = (tpp[k] || 0) * normalized;
+      monthly[k] = (comp[k] || 0) * normalized;
     }
     const total = sumMonthly(monthly);
     const avgMonthly = total / periodMonths;

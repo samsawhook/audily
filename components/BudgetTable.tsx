@@ -2,7 +2,7 @@
 
 import { Fragment } from "react";
 import type { Calculation, LineItem, LineItemGroup, MonthKey } from "@/lib/budget";
-import { PROJECTED_MONTHS, formatCurrency, sumMonthly } from "@/lib/budget";
+import { PROJECTED_MONTHS, SALARY_MONTHLY, EMPLOYER_TAX_MONTHLY, formatCurrency, sumMonthly } from "@/lib/budget";
 
 type Props = {
   calc: Calculation;
@@ -28,6 +28,7 @@ const groupTotals = (calc: Calculation, group: LineItemGroup) => {
 };
 
 export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Props) {
+  const isSalary = calc.mode === "salary";
   const groups: LineItemGroup[] = ["revenue", "direct", "overhead", "debt"];
 
   const updateCell = (id: string, month: MonthKey, value: number) => {
@@ -37,8 +38,10 @@ export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Pr
   };
 
   const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
-  const fcf = PROJECTED_MONTHS.map((m) => calc.freeCashFlow[m] || 0);
-  const tpp = PROJECTED_MONTHS.map((m) => calc.talentPool[m] || 0);
+  const comp = PROJECTED_MONTHS.map((m) => calc.comp[m] || 0);
+  const net = PROJECTED_MONTHS.map((m) => calc.companyNet[m] || 0);
+  const salaryRow = PROJECTED_MONTHS.map((m) => calc.salary[m] || 0);
+  const taxRow = PROJECTED_MONTHS.map((m) => calc.employerTax[m] || 0);
 
   return (
     <div className="card">
@@ -46,7 +49,8 @@ export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Pr
         <div>
           <h3 className="text-sm font-semibold text-ink-900">Editable budget — full monthly breakdown</h3>
           <p className="text-xs text-ink-500 mt-0.5">
-            Click any number to edit · charts and pool update live · saved to this device
+            Click any operating-expense cell to edit · charts and pool update live · saved to this device
+            {isSalary ? <span className="ml-2 chip bg-paper-100 text-ink-600">Salary mode · $25,100 + $4,267 are fixed</span> : null}
           </p>
         </div>
         <button
@@ -57,7 +61,7 @@ export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Pr
         </button>
       </div>
 
-      <div className="overflow-x-auto border-t border-ink-100">
+      <div className="overflow-x-auto border-t border-paper-300">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-[11px] uppercase tracking-wider text-ink-500 bg-paper-100/60">
@@ -65,7 +69,7 @@ export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Pr
               {PROJECTED_MONTHS.map((m) => (
                 <th key={m} className="text-right font-medium px-3 py-2 numeral">{m}</th>
               ))}
-              <th className="text-right font-medium px-5 py-2 numeral border-l border-ink-100">Total</th>
+              <th className="text-right font-medium px-5 py-2 numeral border-l border-paper-300">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -74,7 +78,7 @@ export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Pr
               const headerValues = groupTotals(calc, g);
               return (
                 <Fragment key={g}>
-                  <tr className="bg-paper-100/60 border-t border-ink-100">
+                  <tr className="bg-paper-100/60 border-t border-paper-300">
                     <td className={`px-5 py-2 font-semibold text-sm sticky left-0 bg-paper-100/95 z-10 ${g === "revenue" ? "text-good-600" : "text-ink-700"}`}>
                       {groupHeading(g)}
                     </td>
@@ -83,7 +87,7 @@ export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Pr
                         {v === 0 ? <span className="text-ink-300">—</span> : formatCurrency(v, { compact: true })}
                       </td>
                     ))}
-                    <td className={`text-right px-5 py-2 numeral font-semibold border-l border-ink-100 ${g === "revenue" ? "text-good-600" : "text-ink-700"}`}>
+                    <td className={`text-right px-5 py-2 numeral font-semibold border-l border-paper-300 ${g === "revenue" ? "text-good-600" : "text-ink-700"}`}>
                       {formatCurrency(sum(headerValues))}
                     </td>
                   </tr>
@@ -98,7 +102,7 @@ export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Pr
                           />
                         </td>
                       ))}
-                      <td className="text-right px-5 py-1 numeral text-ink-700 font-medium border-l border-ink-100">
+                      <td className="text-right px-5 py-1 numeral text-ink-700 font-medium border-l border-paper-300">
                         {formatCurrency(sumMonthly(item.monthly))}
                       </td>
                     </tr>
@@ -106,31 +110,89 @@ export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Pr
                 </Fragment>
               );
             })}
-            <tr className="bg-paper-100/60 border-t border-ink-100">
-              <td className="px-5 py-2 font-semibold text-sm text-ink-700 sticky left-0 bg-paper-100/95 z-10">Free Cash Flow</td>
-              {fcf.map((v, i) => (
-                <td key={i} className={`text-right px-3 py-2 numeral font-medium ${v >= 0 ? "text-ink-700" : "text-bad-600"}`}>
+
+            {isSalary ? (
+              <Fragment>
+                <tr className="bg-paper-100/60 border-t border-paper-300">
+                  <td className="px-5 py-2 font-semibold text-sm text-ink-700 sticky left-0 bg-paper-100/95 z-10">
+                    Compensation
+                  </td>
+                  {PROJECTED_MONTHS.map((m, i) => (
+                    <td key={m} className="text-right px-3 py-2 numeral font-medium text-ink-700">
+                      {formatCurrency((salaryRow[i] || 0) + (taxRow[i] || 0), { compact: true })}
+                    </td>
+                  ))}
+                  <td className="text-right px-5 py-2 numeral font-semibold border-l border-paper-300 text-ink-700">
+                    {formatCurrency(calc.totalSalary + calc.totalEmployerTax)}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="pl-9 pr-5 py-1 text-ink-600 text-sm sticky left-0 bg-white z-10">
+                    Rococo Punch Salaries
+                  </td>
+                  {salaryRow.map((v, i) => (
+                    <td key={i} className="text-right px-2 py-1 numeral text-ink-600">
+                      {formatCurrency(v, { compact: true })}
+                    </td>
+                  ))}
+                  <td className="text-right px-5 py-1 numeral text-ink-700 font-medium border-l border-paper-300">
+                    {formatCurrency(calc.totalSalary)}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="pl-9 pr-5 py-1 text-ink-600 text-sm sticky left-0 bg-white z-10">
+                    Employer Tax
+                  </td>
+                  {taxRow.map((v, i) => (
+                    <td key={i} className="text-right px-2 py-1 numeral text-ink-600">
+                      {formatCurrency(v, { compact: true })}
+                    </td>
+                  ))}
+                  <td className="text-right px-5 py-1 numeral text-ink-700 font-medium border-l border-paper-300">
+                    {formatCurrency(calc.totalEmployerTax)}
+                  </td>
+                </tr>
+              </Fragment>
+            ) : null}
+
+            {!isSalary ? (
+              <tr className="bg-brand-50/40 border-t border-paper-300">
+                <td className="px-5 py-2 font-semibold text-sm text-brand-700 sticky left-0 bg-brand-50/80 z-10">
+                  Talent Pool (after carry-fwd)
+                </td>
+                {comp.map((v, i) => (
+                  <td key={i} className="text-right px-3 py-2 numeral font-medium text-brand-700">
+                    {v === 0 ? <span className="text-ink-300">—</span> : formatCurrency(v, { compact: true })}
+                  </td>
+                ))}
+                <td className="text-right px-5 py-2 numeral font-semibold border-l border-paper-300 text-brand-700">
+                  {formatCurrency(calc.compTotal)}
+                </td>
+              </tr>
+            ) : null}
+
+            <tr className="bg-paper-100/60 border-t border-paper-300">
+              <td className="px-5 py-2 font-semibold text-sm text-ink-700 sticky left-0 bg-paper-100/95 z-10">
+                Company Net
+              </td>
+              {net.map((v, i) => (
+                <td key={i} className={`text-right px-3 py-2 numeral font-medium ${v >= 0 ? "text-ink-900" : "text-bad-600"}`}>
                   {v === 0 ? <span className="text-ink-300">—</span> : formatCurrency(v, { compact: true, signed: true })}
                 </td>
               ))}
-              <td className="text-right px-5 py-2 numeral font-semibold border-l border-ink-100 text-ink-900">
-                {formatCurrency(calc.freeCashFlowTotal, { signed: true })}
-              </td>
-            </tr>
-            <tr className="bg-brand-50/40 border-t border-ink-100">
-              <td className="px-5 py-2 font-semibold text-sm text-brand-700 sticky left-0 bg-brand-50/80 z-10">Talent Pool (after carry-fwd)</td>
-              {tpp.map((v, i) => (
-                <td key={i} className="text-right px-3 py-2 numeral font-medium text-brand-700">
-                  {v === 0 ? <span className="text-ink-300">—</span> : formatCurrency(v, { compact: true })}
-                </td>
-              ))}
-              <td className="text-right px-5 py-2 numeral font-semibold border-l border-ink-100 text-brand-700">
-                {formatCurrency(calc.talentPoolTotal)}
+              <td className={`text-right px-5 py-2 numeral font-semibold border-l border-paper-300 ${calc.companyNetTotal >= 0 ? "text-ink-900" : "text-bad-600"}`}>
+                {formatCurrency(calc.companyNetTotal, { signed: true })}
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+
+      {isSalary ? (
+        <div className="px-5 py-3 border-t border-paper-300 text-[11px] text-ink-500">
+          Salary and Employer Tax are fixed at ${SALARY_MONTHLY.toLocaleString()} and ${EMPLOYER_TAX_MONTHLY.toLocaleString()} / mo respectively — edit in <code className="text-ink-700">lib/budget.ts</code> if needed.
+        </div>
+      ) : null}
     </div>
   );
 }
