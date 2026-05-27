@@ -137,7 +137,7 @@ export default function BudgetDashboard() {
         </section>
 
         <footer className="text-center text-xs text-ink-400 py-6">
-          Audily · internal · figures are projections, not guarantees · v0.1
+          Audily · internal · figures are projections, not guarantees · v0.1.1
         </footer>
       </main>
     </div>
