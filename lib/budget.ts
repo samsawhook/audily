@@ -14,6 +14,12 @@ const zeroMap = (): MonthlyMap => ({
   Sep: 0, Oct: 0, Nov: 0, Dec: 0,
 });
 
+const flat = (n: number): MonthlyMap => {
+  const out = zeroMap();
+  for (const m of PROJECTED_MONTHS) out[m] = n;
+  return out;
+};
+
 const fromProjected = (vals: number[]): MonthlyMap => {
   const out = zeroMap();
   PROJECTED_MONTHS.forEach((m, i) => {
@@ -22,66 +28,55 @@ const fromProjected = (vals: number[]): MonthlyMap => {
   return out;
 };
 
+export type LineItemGroup = "revenue" | "direct" | "overhead" | "debt";
+
 export type LineItem = {
   id: string;
   label: string;
-  group: "revenue" | "cogs" | "overhead";
+  group: LineItemGroup;
   monthly: MonthlyMap;
 };
 
-// Source: Profit Pool — Audily Forward Projections 2026 (sheet9).
-// Revenue is broken down by show/client under Rococo Punch.
-// Compensation runs entirely through the talent profit pool —
-// no salary or employer-tax line items.
+// Source: Profit Pool — Audily Forward Projections 2026 (sheet9, May–Dec)
+// plus owner updates: per-show revenue, detailed direct expenses,
+// flat $5k/mo overhead split four ways, $5k/mo debt service.
 export const BUDGET: LineItem[] = [
-  {
-    id: "rev_chronicle",
-    label: "Chronicle",
-    group: "revenue",
-    monthly: fromProjected([10000, 0, 0, 0, 0, 0, 0, 0]),
-  },
-  {
-    id: "rev_cep",
-    label: "CEP",
-    group: "revenue",
-    monthly: fromProjected([20000, 0, 20000, 0, 20000, 0, 20000, 0]),
-  },
-  {
-    id: "rev_kscope",
-    label: "Kscope",
-    group: "revenue",
-    monthly: fromProjected([0, 0, 0, 0, 0, 0, 0, 0]),
-  },
-  {
-    id: "rev_josh_levin",
-    label: "Josh Levin",
-    group: "revenue",
-    monthly: fromProjected([42000, 0, 0, 0, 31500, 0, 31500, 0]),
-  },
-  {
-    id: "rev_bu",
-    label: "BU",
-    group: "revenue",
-    monthly: fromProjected([0, 0, 0, 12000, 0, 0, 0, 0]),
-  },
-  {
-    id: "rev_wme",
-    label: "WME",
-    group: "revenue",
-    monthly: fromProjected([0, 0, 0, 135000, 0, 0, 0, 0]),
-  },
-  {
-    id: "cogs_rococo",
-    label: "Rococo Punch — Production",
-    group: "cogs",
-    monthly: fromProjected([17800, 14800, 14800, 14800, 14800, 14800, 14800, 14800]),
-  },
-  {
-    id: "overhead",
-    label: "Overhead",
-    group: "overhead",
-    monthly: fromProjected([30102, 17339, 15500, 15500, 15500, 15500, 15500, 15500]),
-  },
+  // Revenue — Rococo Punch by show / client
+  { id: "rev_chronicle",  label: "Chronicle",  group: "revenue", monthly: fromProjected([10000, 0,     0,     0,      0,     0,     0,     0]) },
+  { id: "rev_cep",        label: "CEP",        group: "revenue", monthly: fromProjected([20000, 0,     20000, 0,      20000, 0,     20000, 0]) },
+  { id: "rev_kscope",     label: "Kscope",     group: "revenue", monthly: fromProjected([0,     0,     0,     0,      0,     0,     0,     0]) },
+  { id: "rev_josh_levin", label: "Josh Levin", group: "revenue", monthly: fromProjected([42000, 0,     0,     0,      31500, 0,     31500, 0]) },
+  { id: "rev_bu",         label: "BU",         group: "revenue", monthly: fromProjected([0,     0,     0,     12000,  0,     0,     0,     0]) },
+  { id: "rev_wme",        label: "WME",        group: "revenue", monthly: fromProjected([0,     0,     0,     135000, 0,     0,     0,     0]) },
+
+  // Direct expenses — Rococo Punch operating ($12,800 / mo)
+  { id: "dir_discretionary",  label: "Discretionary",      group: "direct", monthly: flat(500)  },
+  { id: "dir_marketing",      label: "Marketing & Travel", group: "direct", monthly: flat(500)  },
+  { id: "dir_ga",             label: "G&A",                group: "direct", monthly: flat(100)  },
+  { id: "dir_contract_labor", label: "Contract Labor",     group: "direct", monthly: flat(8000) },
+  { id: "dir_software_apps",  label: "Software & Apps",    group: "direct", monthly: flat(200)  },
+  { id: "dir_health",         label: "Health Insurance",   group: "direct", monthly: flat(3500) },
+
+  // Overhead — $5k / mo, split evenly between four lines
+  { id: "oh_insurance",   label: "Insurance",   group: "overhead", monthly: flat(1250) },
+  { id: "oh_software",    label: "Software",    group: "overhead", monthly: flat(1250) },
+  { id: "oh_legal",       label: "Legal",       group: "overhead", monthly: flat(1250) },
+  { id: "oh_bookkeeping", label: "Bookkeeping", group: "overhead", monthly: flat(1250) },
+
+  // Debt service
+  { id: "debt_service", label: "Debt Service", group: "debt", monthly: flat(5000) },
+];
+
+export type Member = {
+  id: string;
+  name: string;
+  share: number; // raw share, normalized at distribution time
+};
+
+export const DEFAULT_MEMBERS: Member[] = [
+  { id: "john",  name: "John Perotti", share: 40 },
+  { id: "erika", name: "Erika Lantz",  share: 30 },
+  { id: "emily", name: "Emily Forman", share: 30 },
 ];
 
 export type ScenarioProject = {
@@ -102,33 +97,21 @@ export const monthsRemaining = (start: MonthKey): MonthKey[] => {
   return PROJECTED_MONTHS.slice(idx);
 };
 
-export type PoolBase = "gross" | "operating";
-
 export type Calculation = {
   revenue: MonthlyMap;
-  cogs: MonthlyMap;
+  direct: MonthlyMap;
   overhead: MonthlyMap;
+  debt: MonthlyMap;
   totalRevenue: number;
-  totalCogs: number;
+  totalDirect: number;
   totalOverhead: number;
+  totalDebt: number;
   totalExpenses: number;
-  grossProfit: MonthlyMap;
-  grossProfitTotal: number;
-  operatingProfit: MonthlyMap;
-  operatingProfitTotal: number;
-  talentPool: MonthlyMap;
-  talentPoolTotal: number;
-  netCashFlow: MonthlyMap; // company-retained after paying pool
-  netCashFlowTotal: number;
-  poolBase: PoolBase;
+  freeCashFlow: MonthlyMap;
+  freeCashFlowTotal: number;
 };
 
 export type CalcOptions = {
-  // Where talent pool is drawn from:
-  // "gross"      -> Revenue - COGS
-  // "operating"  -> Revenue - COGS - Overhead  (default)
-  poolBase: PoolBase;
-  poolPercent: number;
   scenarios: ScenarioProject[];
 };
 
@@ -159,56 +142,58 @@ const scenarioToMonthly = (
 export const computeBudget = (opts: CalcOptions): Calculation => {
   const empty = zeroMap();
   let revenue = empty;
-  let cogs = empty;
+  let direct = empty;
   let overhead = empty;
+  let debt = empty;
 
   for (const item of BUDGET) {
     switch (item.group) {
-      case "revenue": revenue = accMap(revenue, item.monthly); break;
-      case "cogs": cogs = accMap(cogs, item.monthly); break;
+      case "revenue":  revenue  = accMap(revenue,  item.monthly); break;
+      case "direct":   direct   = accMap(direct,   item.monthly); break;
       case "overhead": overhead = accMap(overhead, item.monthly); break;
+      case "debt":     debt     = accMap(debt,     item.monthly); break;
     }
   }
 
   for (const s of opts.scenarios) {
     revenue = accMap(revenue, scenarioToMonthly(s, "revenue"));
-    cogs = accMap(cogs, scenarioToMonthly(s, "productionCost"));
+    direct = accMap(direct, scenarioToMonthly(s, "productionCost"));
   }
 
-  const grossProfit = zeroMap();
-  const operatingProfit = zeroMap();
+  const freeCashFlow = zeroMap();
   for (const m of PROJECTED_MONTHS) {
-    grossProfit[m] = (revenue[m] || 0) - (cogs[m] || 0);
-    operatingProfit[m] = grossProfit[m] - (overhead[m] || 0);
-  }
-
-  const talentPool = zeroMap();
-  for (const m of PROJECTED_MONTHS) {
-    const base = opts.poolBase === "gross" ? grossProfit[m] : operatingProfit[m];
-    talentPool[m] = base > 0 ? base * opts.poolPercent : 0;
-  }
-
-  const netCashFlow = zeroMap();
-  for (const m of PROJECTED_MONTHS) {
-    netCashFlow[m] = operatingProfit[m] - talentPool[m];
+    freeCashFlow[m] = (revenue[m] || 0) - (direct[m] || 0) - (overhead[m] || 0) - (debt[m] || 0);
   }
 
   return {
-    revenue, cogs, overhead,
+    revenue, direct, overhead, debt,
     totalRevenue: sumMonthly(revenue),
-    totalCogs: sumMonthly(cogs),
+    totalDirect: sumMonthly(direct),
     totalOverhead: sumMonthly(overhead),
-    totalExpenses: sumMonthly(cogs) + sumMonthly(overhead),
-    grossProfit,
-    grossProfitTotal: sumMonthly(grossProfit),
-    operatingProfit,
-    operatingProfitTotal: sumMonthly(operatingProfit),
-    talentPool,
-    talentPoolTotal: sumMonthly(talentPool),
-    netCashFlow,
-    netCashFlowTotal: sumMonthly(netCashFlow),
-    poolBase: opts.poolBase,
+    totalDebt: sumMonthly(debt),
+    totalExpenses: sumMonthly(direct) + sumMonthly(overhead) + sumMonthly(debt),
+    freeCashFlow,
+    freeCashFlowTotal: sumMonthly(freeCashFlow),
   };
+};
+
+export type MemberDistribution = {
+  member: Member;
+  normalizedShare: number; // 0..1
+  amount: number;
+};
+
+export const distributePool = (pool: number, members: Member[]): MemberDistribution[] => {
+  const sum = members.reduce((a, m) => a + Math.max(0, m.share), 0);
+  return members.map((m) => {
+    const share = Math.max(0, m.share);
+    const normalized = sum > 0 ? share / sum : 0;
+    return {
+      member: m,
+      normalizedShare: normalized,
+      amount: pool > 0 ? pool * normalized : 0,
+    };
+  });
 };
 
 export const formatCurrency = (n: number, opts?: { compact?: boolean; signed?: boolean }) => {

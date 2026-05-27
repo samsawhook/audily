@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   computeBudget,
+  DEFAULT_MEMBERS,
+  type Member,
   type ScenarioProject,
-  type PoolBase,
 } from "@/lib/budget";
 import MetricCard from "./MetricCard";
 import MonthlyChart from "./MonthlyChart";
@@ -14,25 +15,45 @@ import TalentPool from "./TalentPool";
 import WhatIfPanel from "./WhatIfPanel";
 import BudgetTable from "./BudgetTable";
 
-const poolBaseLabel = (b: PoolBase) =>
-  b === "gross" ? "gross profit" : "operating profit";
+const MEMBERS_KEY = "audily.memberShares.v1";
 
 export default function BudgetDashboard() {
   const [scenarios, setScenarios] = useState<ScenarioProject[]>([]);
-  const [poolPercent, setPoolPercent] = useState(0.75);
-  const [poolBase, setPoolBase] = useState<PoolBase>("operating");
+  const [members, setMembers] = useState<Member[]>(DEFAULT_MEMBERS);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(MEMBERS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length === DEFAULT_MEMBERS.length) {
+          setMembers(parsed);
+        }
+      }
+    } catch {}
+  }, []);
+
+  const updateMembers = (next: Member[]) => {
+    setMembers(next);
+    try { localStorage.setItem(MEMBERS_KEY, JSON.stringify(next)); } catch {}
+  };
 
   const baseline = useMemo(
-    () => computeBudget({ scenarios: [], poolPercent, poolBase }),
-    [poolPercent, poolBase],
+    () => computeBudget({ scenarios: [] }),
+    [],
   );
 
   const current = useMemo(
-    () => computeBudget({ scenarios, poolPercent, poolBase }),
-    [scenarios, poolPercent, poolBase],
+    () => computeBudget({ scenarios }),
+    [scenarios],
   );
 
-  const netTone = current.netCashFlowTotal >= 0 ? "good" : "bad";
+  const margin = current.totalRevenue > 0
+    ? current.freeCashFlowTotal / current.totalRevenue
+    : 0;
+  const baselineMargin = baseline.totalRevenue > 0
+    ? baseline.freeCashFlowTotal / baseline.totalRevenue
+    : 0;
 
   return (
     <div className="min-h-screen bg-ink-50">
@@ -61,7 +82,7 @@ export default function BudgetDashboard() {
           <div>
             <h1 className="text-2xl font-semibold text-ink-900 tracking-tight">Forward Projections — 2026</h1>
             <p className="text-sm text-ink-500 mt-1">
-              Compensation flows through the talent profit pool — there are no salaries.
+              All free cash flow is distributed pro rata to the talent pool.
               {scenarios.length > 0 ? (
                 <span className="ml-2 chip bg-brand-100 text-brand-700">
                   {scenarios.length} what-if {scenarios.length === 1 ? "scenario" : "scenarios"} active
@@ -85,23 +106,23 @@ export default function BudgetDashboard() {
           <MetricCard
             label="Operating Expenses"
             value={current.totalExpenses}
-            sublabel="Production + Overhead"
+            sublabel="Direct + Overhead + Debt"
             delta={current.totalExpenses - baseline.totalExpenses}
           />
           <MetricCard
             label="Talent Profit Pool"
-            value={current.talentPoolTotal}
-            sublabel={`${(poolPercent * 100).toFixed(0)}% of ${poolBaseLabel(poolBase)}`}
-            delta={current.talentPoolTotal - baseline.talentPoolTotal}
+            value={current.freeCashFlowTotal}
+            sublabel="100% of free cash flow"
+            delta={current.freeCashFlowTotal - baseline.freeCashFlowTotal}
             tone="brand"
+            signed
           />
           <MetricCard
-            label="Company Net"
-            value={current.netCashFlowTotal}
-            sublabel={current.netCashFlowTotal >= 0 ? "after pool" : "after pool · burn"}
-            delta={current.netCashFlowTotal - baseline.netCashFlowTotal}
-            tone={netTone}
-            signed
+            label="Pool Margin"
+            value={Math.round(margin * 100)}
+            sublabel={`vs ${(baselineMargin * 100).toFixed(0)}% baseline`}
+            tone={margin >= 0 ? "good" : "bad"}
+            asPercent
           />
         </section>
 
@@ -121,10 +142,8 @@ export default function BudgetDashboard() {
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TalentPool
             calc={current}
-            poolPercent={poolPercent}
-            setPoolPercent={setPoolPercent}
-            poolBase={poolBase}
-            setPoolBase={setPoolBase}
+            members={members}
+            setMembers={updateMembers}
           />
           <WhatIfPanel
             scenarios={scenarios}
@@ -139,7 +158,7 @@ export default function BudgetDashboard() {
         </section>
 
         <footer className="text-center text-xs text-ink-400 py-6">
-          Audily · internal · figures are projections, not guarantees · v0.2
+          Audily · internal · figures are projections, not guarantees · v0.3
         </footer>
       </main>
     </div>

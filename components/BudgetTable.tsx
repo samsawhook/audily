@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { Calculation } from "@/lib/budget";
-import { PROJECTED_MONTHS, BUDGET, formatCurrency } from "@/lib/budget";
+import type { Calculation, LineItemGroup } from "@/lib/budget";
+import { PROJECTED_MONTHS, BUDGET, formatCurrency, sumMonthly } from "@/lib/budget";
 
 type Props = { calc: Calculation };
 
@@ -16,33 +16,63 @@ type Row = {
   indent?: boolean;
 };
 
+const groupTotals = (calc: Calculation, group: LineItemGroup) => {
+  switch (group) {
+    case "revenue": return PROJECTED_MONTHS.map((m) => calc.revenue[m] || 0);
+    case "direct": return PROJECTED_MONTHS.map((m) => calc.direct[m] || 0);
+    case "overhead": return PROJECTED_MONTHS.map((m) => calc.overhead[m] || 0);
+    case "debt": return PROJECTED_MONTHS.map((m) => calc.debt[m] || 0);
+  }
+};
+
+const groupHeading = (g: LineItemGroup) => ({
+  revenue: "Revenue",
+  direct: "Direct Expenses",
+  overhead: "Overhead",
+  debt: "Debt Service",
+}[g]);
+
+const groupTone = (g: LineItemGroup): Row["tone"] =>
+  g === "revenue" ? "good" : "muted";
+
 export default function BudgetTable({ calc }: Props) {
   const [open, setOpen] = useState(false);
 
-  const revItems = BUDGET.filter((b) => b.group === "revenue");
-  const cogs = PROJECTED_MONTHS.map((m) => calc.cogs[m] || 0);
-  const overhead = PROJECTED_MONTHS.map((m) => calc.overhead[m] || 0);
-  const rev = PROJECTED_MONTHS.map((m) => calc.revenue[m] || 0);
-  const opProfit = PROJECTED_MONTHS.map((m) => calc.operatingProfit[m] || 0);
-  const pool = PROJECTED_MONTHS.map((m) => calc.talentPool[m] || 0);
-  const net = PROJECTED_MONTHS.map((m) => calc.netCashFlow[m] || 0);
-
   const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
 
-  const rows: Row[] = [
-    { label: "Revenue", values: rev, total: sum(rev), bold: true, tone: "good" },
-    ...revItems.map((item) => ({
-      label: item.label,
-      values: PROJECTED_MONTHS.map((m) => item.monthly[m] || 0),
-      total: sum(PROJECTED_MONTHS.map((m) => item.monthly[m] || 0)),
-      indent: true,
-    })),
-    { label: "Production (COGS)", values: cogs, total: sum(cogs), divider: true },
-    { label: "Overhead", values: overhead, total: sum(overhead) },
-    { label: "Operating Profit", values: opProfit, total: sum(opProfit), bold: true, tone: sum(opProfit) >= 0 ? "good" : "bad", divider: true },
-    { label: "Talent Pool", values: pool, total: sum(pool), bold: true, tone: "brand" },
-    { label: "Company Net", values: net, total: sum(net), bold: true, tone: sum(net) >= 0 ? "good" : "bad", divider: true },
-  ];
+  const rows: Row[] = [];
+  const groups: LineItemGroup[] = ["revenue", "direct", "overhead", "debt"];
+  for (const g of groups) {
+    const items = BUDGET.filter((b) => b.group === g);
+    const headerValues = groupTotals(calc, g);
+    rows.push({
+      label: groupHeading(g),
+      values: headerValues,
+      total: sum(headerValues),
+      bold: true,
+      tone: groupTone(g),
+      divider: g !== "revenue",
+    });
+    for (const item of items) {
+      const vals = PROJECTED_MONTHS.map((m) => item.monthly[m] || 0);
+      rows.push({
+        label: item.label,
+        values: vals,
+        total: sumMonthly(item.monthly),
+        indent: true,
+      });
+    }
+  }
+
+  const fcf = PROJECTED_MONTHS.map((m) => calc.freeCashFlow[m] || 0);
+  rows.push({
+    label: "Talent Pool / FCF",
+    values: fcf,
+    total: sum(fcf),
+    bold: true,
+    tone: sum(fcf) >= 0 ? "brand" : "bad",
+    divider: true,
+  });
 
   return (
     <div className="card">

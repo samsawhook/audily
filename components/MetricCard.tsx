@@ -6,9 +6,10 @@ type Props = {
   label: string;
   value: number;
   sublabel?: string;
-  delta?: number; // optional change from baseline
+  delta?: number;
   tone?: Tone;
   signed?: boolean;
+  asPercent?: boolean;
   icon?: React.ReactNode;
 };
 
@@ -20,9 +21,12 @@ const toneClasses: Record<Tone, string> = {
 };
 
 export default function MetricCard({
-  label, value, sublabel, delta, tone = "neutral", signed, icon,
+  label, value, sublabel, delta, tone = "neutral", signed, asPercent, icon,
 }: Props) {
   const deltaTone = delta == null ? "" : delta > 0 ? "text-good-600 bg-good-500/10" : delta < 0 ? "text-bad-600 bg-bad-500/10" : "text-ink-500 bg-ink-100";
+  const display = asPercent
+    ? `${value}%`
+    : formatCurrency(value, { signed });
   return (
     <div className="card p-5">
       <div className="flex items-center justify-between">
@@ -30,7 +34,7 @@ export default function MetricCard({
         {icon ? <div className="text-ink-400">{icon}</div> : null}
       </div>
       <div className={`mt-2 numeral text-3xl font-semibold ${toneClasses[tone]}`}>
-        {formatCurrency(value, { signed })}
+        {display}
       </div>
       <div className="mt-1 flex items-center gap-2 text-xs">
         {sublabel ? <span className="text-ink-500">{sublabel}</span> : null}
