@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Calculation } from "@/lib/budget";
-import { PROJECTED_MONTHS, formatCurrency } from "@/lib/budget";
+import { PROJECTED_MONTHS, BUDGET, formatCurrency } from "@/lib/budget";
 
 type Props = { calc: Calculation };
 
@@ -13,31 +13,35 @@ type Row = {
   bold?: boolean;
   tone?: "good" | "bad" | "brand" | "muted";
   divider?: boolean;
+  indent?: boolean;
 };
 
 export default function BudgetTable({ calc }: Props) {
   const [open, setOpen] = useState(false);
 
-  const rev = PROJECTED_MONTHS.map((m) => calc.revenue[m] || 0);
+  const revItems = BUDGET.filter((b) => b.group === "revenue");
   const cogs = PROJECTED_MONTHS.map((m) => calc.cogs[m] || 0);
-  const salary = PROJECTED_MONTHS.map((m) => calc.salary[m] || 0);
-  const tax = PROJECTED_MONTHS.map((m) => calc.tax[m] || 0);
   const overhead = PROJECTED_MONTHS.map((m) => calc.overhead[m] || 0);
-  const expenses = PROJECTED_MONTHS.map((m, i) => cogs[i] + salary[i] + tax[i] + overhead[i]);
-  const cash = PROJECTED_MONTHS.map((m) => calc.cashFlow[m] || 0);
+  const rev = PROJECTED_MONTHS.map((m) => calc.revenue[m] || 0);
+  const opProfit = PROJECTED_MONTHS.map((m) => calc.operatingProfit[m] || 0);
   const pool = PROJECTED_MONTHS.map((m) => calc.talentPool[m] || 0);
+  const net = PROJECTED_MONTHS.map((m) => calc.netCashFlow[m] || 0);
 
   const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
 
   const rows: Row[] = [
     { label: "Revenue", values: rev, total: sum(rev), bold: true, tone: "good" },
-    { label: "Production (COGS)", values: cogs, total: sum(cogs) },
-    { label: "Salaries", values: salary, total: sum(salary) },
-    { label: "Employer Tax", values: tax, total: sum(tax) },
+    ...revItems.map((item) => ({
+      label: item.label,
+      values: PROJECTED_MONTHS.map((m) => item.monthly[m] || 0),
+      total: sum(PROJECTED_MONTHS.map((m) => item.monthly[m] || 0)),
+      indent: true,
+    })),
+    { label: "Production (COGS)", values: cogs, total: sum(cogs), divider: true },
     { label: "Overhead", values: overhead, total: sum(overhead) },
-    { label: "Total Expenses", values: expenses, total: sum(expenses), bold: true, tone: "muted", divider: true },
-    { label: "Net Cash Flow", values: cash, total: sum(cash), bold: true, tone: sum(cash) >= 0 ? "good" : "bad", divider: true },
+    { label: "Operating Profit", values: opProfit, total: sum(opProfit), bold: true, tone: sum(opProfit) >= 0 ? "good" : "bad", divider: true },
     { label: "Talent Pool", values: pool, total: sum(pool), bold: true, tone: "brand" },
+    { label: "Company Net", values: net, total: sum(net), bold: true, tone: sum(net) >= 0 ? "good" : "bad", divider: true },
   ];
 
   return (
@@ -70,13 +74,13 @@ export default function BudgetTable({ calc }: Props) {
                   key={i}
                   className={`${r.divider ? "border-t border-ink-100" : ""} ${r.bold ? "bg-ink-50/60" : ""}`}
                 >
-                  <td className={`px-5 py-2 ${r.bold ? "font-semibold text-ink-900" : "text-ink-700"}`}>
+                  <td className={`py-2 ${r.indent ? "pl-9 pr-5" : "px-5"} ${r.bold ? "font-semibold text-ink-900" : r.indent ? "text-ink-500" : "text-ink-700"}`}>
                     {r.label}
                   </td>
                   {r.values.map((v, idx) => (
                     <td
                       key={idx}
-                      className={`text-right px-3 py-2 numeral ${rowTone(r.tone)} ${r.bold ? "font-medium" : ""}`}
+                      className={`text-right px-3 py-2 numeral ${rowTone(r.tone)} ${r.bold ? "font-medium" : ""} ${r.indent ? "text-ink-500" : ""}`}
                     >
                       {v === 0 ? <span className="text-ink-300">—</span> : formatCurrency(v, { compact: true })}
                     </td>

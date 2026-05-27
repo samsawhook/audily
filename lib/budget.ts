@@ -25,36 +25,56 @@ const fromProjected = (vals: number[]): MonthlyMap => {
 export type LineItem = {
   id: string;
   label: string;
-  group: "revenue" | "cogs" | "salary" | "tax" | "overhead";
+  group: "revenue" | "cogs" | "overhead";
   monthly: MonthlyMap;
 };
 
-// Source: Profit Pool — Audily Forward Projections 2026 (sheet9)
-// Months May–Dec are PROJ. Earlier months are blank in the source.
+// Source: Profit Pool — Audily Forward Projections 2026 (sheet9).
+// Revenue is broken down by show/client under Rococo Punch.
+// Compensation runs entirely through the talent profit pool —
+// no salary or employer-tax line items.
 export const BUDGET: LineItem[] = [
   {
-    id: "rev_rococo",
-    label: "Rococo Punch — Revenue",
+    id: "rev_chronicle",
+    label: "Chronicle",
     group: "revenue",
-    monthly: fromProjected([72000, 0, 20000, 147000, 51500, 0, 51500, 0]),
+    monthly: fromProjected([10000, 0, 0, 0, 0, 0, 0, 0]),
+  },
+  {
+    id: "rev_cep",
+    label: "CEP",
+    group: "revenue",
+    monthly: fromProjected([20000, 0, 20000, 0, 20000, 0, 20000, 0]),
+  },
+  {
+    id: "rev_kscope",
+    label: "Kscope",
+    group: "revenue",
+    monthly: fromProjected([0, 0, 0, 0, 0, 0, 0, 0]),
+  },
+  {
+    id: "rev_josh_levin",
+    label: "Josh Levin",
+    group: "revenue",
+    monthly: fromProjected([42000, 0, 0, 0, 31500, 0, 31500, 0]),
+  },
+  {
+    id: "rev_bu",
+    label: "BU",
+    group: "revenue",
+    monthly: fromProjected([0, 0, 0, 12000, 0, 0, 0, 0]),
+  },
+  {
+    id: "rev_wme",
+    label: "WME",
+    group: "revenue",
+    monthly: fromProjected([0, 0, 0, 135000, 0, 0, 0, 0]),
   },
   {
     id: "cogs_rococo",
     label: "Rococo Punch — Production",
     group: "cogs",
     monthly: fromProjected([17800, 14800, 14800, 14800, 14800, 14800, 14800, 14800]),
-  },
-  {
-    id: "salary_rococo",
-    label: "Rococo Punch Salaries",
-    group: "salary",
-    monthly: fromProjected([25100, 25100, 25100, 25100, 25100, 25100, 25100, 25100]),
-  },
-  {
-    id: "tax_employer",
-    label: "Employer Tax",
-    group: "tax",
-    monthly: fromProjected([4267, 4267, 4267, 4267, 4267, 4267, 4267, 4267]),
   },
   {
     id: "overhead",
@@ -82,35 +102,33 @@ export const monthsRemaining = (start: MonthKey): MonthKey[] => {
   return PROJECTED_MONTHS.slice(idx);
 };
 
+export type PoolBase = "gross" | "operating";
+
 export type Calculation = {
   revenue: MonthlyMap;
   cogs: MonthlyMap;
-  salary: MonthlyMap;
-  tax: MonthlyMap;
   overhead: MonthlyMap;
   totalRevenue: number;
   totalCogs: number;
-  totalSalary: number;
-  totalTax: number;
   totalOverhead: number;
+  totalExpenses: number;
   grossProfit: MonthlyMap;
   grossProfitTotal: number;
-  netProfit: MonthlyMap;
-  netProfitTotal: number;
-  cashFlow: MonthlyMap;
-  cashFlowTotal: number;
+  operatingProfit: MonthlyMap;
+  operatingProfitTotal: number;
   talentPool: MonthlyMap;
   talentPoolTotal: number;
-  poolBase: "gross" | "net_excl_salary" | "net";
+  netCashFlow: MonthlyMap; // company-retained after paying pool
+  netCashFlowTotal: number;
+  poolBase: PoolBase;
 };
 
 export type CalcOptions = {
   // Where talent pool is drawn from:
-  // "gross"            -> Revenue - COGS
-  // "net_excl_salary"  -> Revenue - COGS - Overhead - Tax (excludes existing salary line)
-  // "net"              -> Revenue - all expenses (current line items)
-  poolBase: "gross" | "net_excl_salary" | "net";
-  poolPercent: number; // e.g. 0.75
+  // "gross"      -> Revenue - COGS
+  // "operating"  -> Revenue - COGS - Overhead  (default)
+  poolBase: PoolBase;
+  poolPercent: number;
   scenarios: ScenarioProject[];
 };
 
@@ -142,16 +160,12 @@ export const computeBudget = (opts: CalcOptions): Calculation => {
   const empty = zeroMap();
   let revenue = empty;
   let cogs = empty;
-  let salary = empty;
-  let tax = empty;
   let overhead = empty;
 
   for (const item of BUDGET) {
     switch (item.group) {
       case "revenue": revenue = accMap(revenue, item.monthly); break;
       case "cogs": cogs = accMap(cogs, item.monthly); break;
-      case "salary": salary = accMap(salary, item.monthly); break;
-      case "tax": tax = accMap(tax, item.monthly); break;
       case "overhead": overhead = accMap(overhead, item.monthly); break;
     }
   }
@@ -162,47 +176,37 @@ export const computeBudget = (opts: CalcOptions): Calculation => {
   }
 
   const grossProfit = zeroMap();
-  const netProfit = zeroMap();
-  const cashFlow = zeroMap();
+  const operatingProfit = zeroMap();
   for (const m of PROJECTED_MONTHS) {
     grossProfit[m] = (revenue[m] || 0) - (cogs[m] || 0);
-    const allExp = (cogs[m] || 0) + (salary[m] || 0) + (tax[m] || 0) + (overhead[m] || 0);
-    netProfit[m] = (revenue[m] || 0) - allExp;
-    cashFlow[m] = netProfit[m];
-  }
-
-  const poolBaseMonthly = zeroMap();
-  for (const m of PROJECTED_MONTHS) {
-    if (opts.poolBase === "gross") {
-      poolBaseMonthly[m] = grossProfit[m];
-    } else if (opts.poolBase === "net_excl_salary") {
-      poolBaseMonthly[m] = (revenue[m] || 0) - (cogs[m] || 0) - (tax[m] || 0) - (overhead[m] || 0);
-    } else {
-      poolBaseMonthly[m] = netProfit[m];
-    }
+    operatingProfit[m] = grossProfit[m] - (overhead[m] || 0);
   }
 
   const talentPool = zeroMap();
   for (const m of PROJECTED_MONTHS) {
-    const base = poolBaseMonthly[m];
+    const base = opts.poolBase === "gross" ? grossProfit[m] : operatingProfit[m];
     talentPool[m] = base > 0 ? base * opts.poolPercent : 0;
   }
 
+  const netCashFlow = zeroMap();
+  for (const m of PROJECTED_MONTHS) {
+    netCashFlow[m] = operatingProfit[m] - talentPool[m];
+  }
+
   return {
-    revenue, cogs, salary, tax, overhead,
+    revenue, cogs, overhead,
     totalRevenue: sumMonthly(revenue),
     totalCogs: sumMonthly(cogs),
-    totalSalary: sumMonthly(salary),
-    totalTax: sumMonthly(tax),
     totalOverhead: sumMonthly(overhead),
+    totalExpenses: sumMonthly(cogs) + sumMonthly(overhead),
     grossProfit,
     grossProfitTotal: sumMonthly(grossProfit),
-    netProfit,
-    netProfitTotal: sumMonthly(netProfit),
-    cashFlow,
-    cashFlowTotal: sumMonthly(cashFlow),
+    operatingProfit,
+    operatingProfitTotal: sumMonthly(operatingProfit),
     talentPool,
     talentPoolTotal: sumMonthly(talentPool),
+    netCashFlow,
+    netCashFlowTotal: sumMonthly(netCashFlow),
     poolBase: opts.poolBase,
   };
 };

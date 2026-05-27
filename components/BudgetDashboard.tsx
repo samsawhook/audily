@@ -4,19 +4,23 @@ import { useMemo, useState } from "react";
 import {
   computeBudget,
   type ScenarioProject,
-  formatCurrency,
+  type PoolBase,
 } from "@/lib/budget";
 import MetricCard from "./MetricCard";
 import MonthlyChart from "./MonthlyChart";
 import ExpenseBreakdown from "./ExpenseBreakdown";
+import RevenueBreakdown from "./RevenueBreakdown";
 import TalentPool from "./TalentPool";
 import WhatIfPanel from "./WhatIfPanel";
 import BudgetTable from "./BudgetTable";
 
+const poolBaseLabel = (b: PoolBase) =>
+  b === "gross" ? "gross profit" : "operating profit";
+
 export default function BudgetDashboard() {
   const [scenarios, setScenarios] = useState<ScenarioProject[]>([]);
   const [poolPercent, setPoolPercent] = useState(0.75);
-  const [poolBase, setPoolBase] = useState<"gross" | "net_excl_salary" | "net">("gross");
+  const [poolBase, setPoolBase] = useState<PoolBase>("operating");
 
   const baseline = useMemo(
     () => computeBudget({ scenarios: [], poolPercent, poolBase }),
@@ -28,11 +32,10 @@ export default function BudgetDashboard() {
     [scenarios, poolPercent, poolBase],
   );
 
-  const cashTone = current.cashFlowTotal >= 0 ? "good" : "bad";
+  const netTone = current.netCashFlowTotal >= 0 ? "good" : "bad";
 
   return (
     <div className="min-h-screen bg-ink-50">
-      {/* Top bar */}
       <header className="sticky top-0 z-10 backdrop-blur bg-white/80 border-b border-ink-100">
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -54,12 +57,11 @@ export default function BudgetDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
-        {/* Title */}
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-semibold text-ink-900 tracking-tight">Forward Projections — 2026</h1>
             <p className="text-sm text-ink-500 mt-1">
-              Live, line-by-line projections for May – Dec. Everyone sees the same numbers.
+              Compensation flows through the talent profit pool — there are no salaries.
               {scenarios.length > 0 ? (
                 <span className="ml-2 chip bg-brand-100 text-brand-700">
                   {scenarios.length} what-if {scenarios.length === 1 ? "scenario" : "scenarios"} active
@@ -72,7 +74,6 @@ export default function BudgetDashboard() {
           </div>
         </div>
 
-        {/* Hero metrics */}
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             label="Projected Revenue"
@@ -82,29 +83,28 @@ export default function BudgetDashboard() {
             tone="neutral"
           />
           <MetricCard
-            label="Projected Expenses"
-            value={current.totalCogs + current.totalSalary + current.totalTax + current.totalOverhead}
-            sublabel="All categories"
-            delta={(current.totalCogs - baseline.totalCogs)}
-          />
-          <MetricCard
-            label="Net Cash Flow"
-            value={current.cashFlowTotal}
-            sublabel={current.cashFlowTotal >= 0 ? "surplus" : "burn"}
-            delta={current.cashFlowTotal - baseline.cashFlowTotal}
-            tone={cashTone}
-            signed
+            label="Operating Expenses"
+            value={current.totalExpenses}
+            sublabel="Production + Overhead"
+            delta={current.totalExpenses - baseline.totalExpenses}
           />
           <MetricCard
             label="Talent Profit Pool"
             value={current.talentPoolTotal}
-            sublabel={`${(poolPercent * 100).toFixed(0)}% of ${poolBase === "gross" ? "gross profit" : poolBase === "net_excl_salary" ? "pre-salary profit" : "net profit"}`}
+            sublabel={`${(poolPercent * 100).toFixed(0)}% of ${poolBaseLabel(poolBase)}`}
             delta={current.talentPoolTotal - baseline.talentPoolTotal}
             tone="brand"
           />
+          <MetricCard
+            label="Company Net"
+            value={current.netCashFlowTotal}
+            sublabel={current.netCashFlowTotal >= 0 ? "after pool" : "after pool · burn"}
+            delta={current.netCashFlowTotal - baseline.netCashFlowTotal}
+            tone={netTone}
+            signed
+          />
         </section>
 
-        {/* Row 2: Chart + Pie */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
             <MonthlyChart calc={current} baseline={scenarios.length > 0 ? baseline : undefined} />
@@ -114,7 +114,10 @@ export default function BudgetDashboard() {
           </div>
         </section>
 
-        {/* Row 3: Pool + What-If */}
+        <section>
+          <RevenueBreakdown />
+        </section>
+
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TalentPool
             calc={current}
@@ -131,13 +134,12 @@ export default function BudgetDashboard() {
           />
         </section>
 
-        {/* Row 4: Table */}
         <section>
           <BudgetTable calc={current} />
         </section>
 
         <footer className="text-center text-xs text-ink-400 py-6">
-          Audily · internal · figures are projections, not guarantees · v0.1.1
+          Audily · internal · figures are projections, not guarantees · v0.2
         </footer>
       </main>
     </div>

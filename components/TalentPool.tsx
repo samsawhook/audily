@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Calculation } from "@/lib/budget";
+import type { Calculation, PoolBase } from "@/lib/budget";
 import { PROJECTED_MONTHS, formatCurrency, formatPercent } from "@/lib/budget";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
@@ -9,16 +9,15 @@ type Props = {
   calc: Calculation;
   poolPercent: number;
   setPoolPercent: (v: number) => void;
-  poolBase: "gross" | "net_excl_salary" | "net";
-  setPoolBase: (v: "gross" | "net_excl_salary" | "net") => void;
+  poolBase: PoolBase;
+  setPoolBase: (v: PoolBase) => void;
 };
 
 const SHARE_KEY = "audily.myShare.v1";
 
-const baseLabel = (b: Props["poolBase"]) => ({
+const baseLabel = (b: PoolBase): string => ({
   gross: "Gross Profit (Revenue − Production)",
-  net_excl_salary: "Profit before salary (Revenue − Production − Tax − Overhead)",
-  net: "Net Profit (Revenue − all expenses)",
+  operating: "Operating Profit (Revenue − Production − Overhead)",
 }[b]);
 
 export default function TalentPool({
@@ -76,7 +75,6 @@ export default function TalentPool({
         </div>
       </div>
 
-      {/* Pool Size */}
       <div className="mt-4 rounded-2xl bg-gradient-to-br from-brand-50 to-brand-100/40 border border-brand-200/60 p-4">
         <div className="text-[10px] uppercase tracking-wider text-brand-700 font-semibold">Total pool — May–Dec 2026</div>
         <div className="mt-1 flex items-baseline gap-3">
@@ -106,7 +104,6 @@ export default function TalentPool({
         </div>
       </div>
 
-      {/* Anonymous Members */}
       <div className="mt-4 grid grid-cols-3 gap-2">
         {[0, 1, 2].map((i) => (
           <div key={i} className="rounded-xl border border-ink-100 p-3 text-center">
@@ -115,13 +112,12 @@ export default function TalentPool({
             </div>
             <div className="mt-1 text-[10px] uppercase tracking-wider text-ink-500">Member {String.fromCharCode(65 + i)}</div>
             <div className="numeral text-sm text-ink-300 select-none mt-0.5" style={{ filter: "blur(4px)" }}>
-              ${(equalShare).toFixed(0)}
+              ${equalShare.toFixed(0)}
             </div>
           </div>
         ))}
       </div>
 
-      {/* My Share */}
       <div className="mt-4 rounded-xl border border-ink-100 p-4">
         <div className="flex items-center justify-between">
           <div>
@@ -180,7 +176,6 @@ export default function TalentPool({
         ) : null}
       </div>
 
-      {/* Pool config */}
       <div className="mt-4 pt-4 border-t border-ink-100">
         <div className="flex items-center justify-between mb-2">
           <div className="text-xs font-semibold text-ink-900">Pool calculation</div>
@@ -196,11 +191,10 @@ export default function TalentPool({
           onChange={(e) => setPoolPercent(parseFloat(e.target.value))}
           className="w-full accent-brand-600"
         />
-        <div className="mt-3 grid grid-cols-3 gap-1.5">
+        <div className="mt-3 grid grid-cols-2 gap-1.5">
           {([
-            ["gross", "Gross"],
-            ["net_excl_salary", "Pre-salary"],
-            ["net", "Net"],
+            ["gross", "Gross profit"],
+            ["operating", "Operating profit"],
           ] as const).map(([k, label]) => (
             <button
               key={k}

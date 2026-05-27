@@ -9,9 +9,8 @@ type Props = { calc: Calculation };
 export default function ExpenseBreakdown({ calc }: Props) {
   const slices = [
     { name: "Production (COGS)", value: calc.totalCogs, color: "#7f47ff" },
-    { name: "Salaries", value: calc.totalSalary, color: "#9e76ff" },
-    { name: "Employer Tax", value: calc.totalTax, color: "#bea7ff" },
-    { name: "Overhead", value: calc.totalOverhead, color: "#d9ceff" },
+    { name: "Overhead", value: calc.totalOverhead, color: "#bea7ff" },
+    { name: "Talent Pool", value: calc.talentPoolTotal, color: "#5e12eb" },
   ];
   const total = slices.reduce((a, s) => a + s.value, 0);
 
@@ -19,7 +18,7 @@ export default function ExpenseBreakdown({ calc }: Props) {
     <div className="card p-5 h-full">
       <div className="mb-3">
         <h3 className="text-sm font-semibold text-ink-900">Where the money goes</h3>
-        <p className="text-xs text-ink-500">Total projected expenses, May–Dec</p>
+        <p className="text-xs text-ink-500">Operating costs + pool, May–Dec</p>
       </div>
       <div className="h-56 relative">
         <ResponsiveContainer>
