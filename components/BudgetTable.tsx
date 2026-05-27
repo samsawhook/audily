@@ -44,7 +44,7 @@ export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Pr
     <div className="card">
       <div className="flex items-center justify-between p-5">
         <div>
-          <h3 className="text-sm font-semibold text-ink-900 serif">Editable budget — full monthly breakdown</h3>
+          <h3 className="text-sm font-semibold text-ink-900">Editable budget — full monthly breakdown</h3>
           <p className="text-xs text-ink-500 mt-0.5">
             Click any number to edit · charts and pool update live · saved to this device
           </p>
@@ -60,8 +60,8 @@ export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Pr
       <div className="overflow-x-auto border-t border-ink-100">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-ink-500 bg-cream-50/60">
-              <th className="text-left font-medium px-5 py-2 sticky left-0 bg-cream-50/95 z-10">Line</th>
+            <tr className="text-[11px] uppercase tracking-wider text-ink-500 bg-paper-100/60">
+              <th className="text-left font-medium px-5 py-2 sticky left-0 bg-paper-100/95 z-10">Line</th>
               {PROJECTED_MONTHS.map((m) => (
                 <th key={m} className="text-right font-medium px-3 py-2 numeral">{m}</th>
               ))}
@@ -74,8 +74,8 @@ export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Pr
               const headerValues = groupTotals(calc, g);
               return (
                 <Fragment key={g}>
-                  <tr className="bg-cream-50/60 border-t border-ink-100">
-                    <td className={`px-5 py-2 font-semibold text-sm sticky left-0 bg-cream-50/95 z-10 ${g === "revenue" ? "text-good-600" : "text-ink-700"}`}>
+                  <tr className="bg-paper-100/60 border-t border-ink-100">
+                    <td className={`px-5 py-2 font-semibold text-sm sticky left-0 bg-paper-100/95 z-10 ${g === "revenue" ? "text-good-600" : "text-ink-700"}`}>
                       {groupHeading(g)}
                     </td>
                     {headerValues.map((v, i) => (
@@ -88,8 +88,8 @@ export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Pr
                     </td>
                   </tr>
                   {items.map((item) => (
-                    <tr key={item.id} className="hover:bg-cream-50/40">
-                      <td className="pl-9 pr-5 py-1 text-ink-600 text-sm sticky left-0 bg-white hover:bg-cream-50/40 z-10">{item.label}</td>
+                    <tr key={item.id} className="hover:bg-paper-100/40">
+                      <td className="pl-9 pr-5 py-1 text-ink-600 text-sm sticky left-0 bg-white hover:bg-paper-100/40 z-10">{item.label}</td>
                       {PROJECTED_MONTHS.map((m) => (
                         <td key={m} className="px-2 py-1">
                           <EditableNumber
@@ -106,8 +106,8 @@ export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Pr
                 </Fragment>
               );
             })}
-            <tr className="bg-cream-50/60 border-t border-ink-100">
-              <td className="px-5 py-2 font-semibold text-sm text-ink-700 sticky left-0 bg-cream-50/95 z-10">Free Cash Flow</td>
+            <tr className="bg-paper-100/60 border-t border-ink-100">
+              <td className="px-5 py-2 font-semibold text-sm text-ink-700 sticky left-0 bg-paper-100/95 z-10">Free Cash Flow</td>
               {fcf.map((v, i) => (
                 <td key={i} className={`text-right px-3 py-2 numeral font-medium ${v >= 0 ? "text-ink-700" : "text-bad-600"}`}>
                   {v === 0 ? <span className="text-ink-300">—</span> : formatCurrency(v, { compact: true, signed: true })}

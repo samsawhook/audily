@@ -16,7 +16,7 @@ type Props = {
   setMembers: (m: Member[]) => void;
 };
 
-const MEMBER_COLORS = ["#C8412E", "#85261A", "#D9A02C"];
+const MEMBER_COLORS = ["#F47369", "#B83C32", "#737373"];
 
 export default function TalentPool({ calc, members, setMembers }: Props) {
   const pool = calc.talentPoolTotal;
@@ -38,7 +38,7 @@ export default function TalentPool({ calc, members, setMembers }: Props) {
     <div className="card p-5 h-full flex flex-col">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold text-ink-900 serif">Talent Profit Pool</h3>
+          <h3 className="text-sm font-semibold text-ink-900">Talent Profit Pool</h3>
           <p className="text-xs text-ink-500 mt-0.5">
             Losses carry forward · pool is never negative · distributed pro rata
           </p>
@@ -52,12 +52,12 @@ export default function TalentPool({ calc, members, setMembers }: Props) {
       </div>
 
       {/* Pool size */}
-      <div className="mt-4 rounded-2xl bg-gradient-to-br from-brand-50 to-cream-100 border border-brand-100 p-4">
+      <div className="mt-4 rounded-2xl bg-gradient-to-br from-brand-50 to-paper-100 border border-brand-100 p-4">
         <div className="text-[10px] uppercase tracking-wider text-brand-700 font-semibold">
           Annual TPP — May–Dec 2026
         </div>
         <div className="mt-1 flex items-baseline gap-3">
-          <div className="numeral text-3xl font-semibold text-brand-700 serif">
+          <div className="numeral text-3xl font-bold text-brand-700">
             {formatCurrency(pool)}
           </div>
           {calc.yearEndCarry < 0 ? (
@@ -69,16 +69,16 @@ export default function TalentPool({ calc, members, setMembers }: Props) {
         <div className="mt-3 h-20">
           <ResponsiveContainer>
             <BarChart data={monthlyData} margin={{ top: 2, right: 2, left: 0, bottom: 0 }}>
-              <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={10} stroke="#8B8270" />
+              <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={10} stroke="#737373" />
               <YAxis hide />
               <Tooltip
                 cursor={{ fill: "rgba(200,65,46,0.08)" }}
-                contentStyle={{ borderRadius: 12, border: "1px solid #EEE9DD", padding: "4px 8px" }}
+                contentStyle={{ borderRadius: 12, border: "1px solid #EFEFEF", padding: "4px 8px" }}
                 formatter={(v: number, name: string) => [formatCurrency(v, { signed: name === "FCF" }), name]}
               />
               <Bar dataKey="tpp" name="TPP" radius={[4, 4, 0, 0]}>
                 {monthlyData.map((d, i) => (
-                  <Cell key={i} fill={d.tpp > 0 ? "#C8412E" : "#EEE9DD"} />
+                  <Cell key={i} fill={d.tpp > 0 ? "#F47369" : "#EFEFEF"} />
                 ))}
               </Bar>
             </BarChart>
@@ -133,7 +133,7 @@ export default function TalentPool({ calc, members, setMembers }: Props) {
         })}
       </div>
 
-      <div className="mt-3 flex items-center justify-between rounded-lg bg-cream-100 px-3 py-2">
+      <div className="mt-3 flex items-center justify-between rounded-lg bg-paper-100 px-3 py-2">
         <span className="text-xs text-ink-500">Total of raw shares</span>
         <span className={`numeral text-xs font-semibold ${balanced ? "text-good-600" : "text-ink-500"}`}>
           {shareSum}%

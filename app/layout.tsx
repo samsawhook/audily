@@ -1,5 +1,19 @@
 import type { Metadata } from "next";
+import { Inter, Archivo_Black } from "next/font/google";
 import "./globals.css";
+
+const sans = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sans",
+});
+
+const display = Archivo_Black({
+  subsets: ["latin"],
+  display: "swap",
+  weight: "400",
+  variable: "--font-display",
+});
 
 export const metadata: Metadata = {
   title: "Rococo Punch Budget",
@@ -12,8 +26,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen antialiased">{children}</body>
+    <html lang="en" className={`${sans.variable} ${display.variable}`}>
+      <body className="min-h-screen antialiased font-sans">{children}</body>
     </html>
   );
 }

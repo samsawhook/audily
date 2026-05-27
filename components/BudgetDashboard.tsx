@@ -9,6 +9,7 @@ import {
   type Member,
   type ScenarioProject,
 } from "@/lib/budget";
+import AsteriskLogo from "./AsteriskLogo";
 import MetricCard from "./MetricCard";
 import MonthlyChart from "./MonthlyChart";
 import ExpenseBreakdown from "./ExpenseBreakdown";
@@ -68,20 +69,19 @@ export default function BudgetDashboard() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-cream-50">
-      <header className="sticky top-0 z-10 backdrop-blur bg-cream-50/85 border-b border-ink-100">
+    <div className="min-h-screen bg-paper-200">
+      <header className="sticky top-0 z-10 backdrop-blur bg-paper-200/85 border-b border-paper-300">
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white font-semibold text-base serif">
-              R
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-ink-900 leading-tight serif">Rococo Punch Budget</div>
-              <div className="text-[11px] text-ink-500 leading-tight">Transparent intranet · 2026</div>
+            <AsteriskLogo className="h-8 w-8 text-brand-500" />
+            <div className="flex items-baseline gap-1">
+              <span className="wordmark text-ink-900 text-lg leading-none">Rococo Punch</span>
+              <span className="text-brand-500 wordmark text-lg leading-none">*</span>
+              <span className="ml-2 text-ink-400 text-xs leading-none">Budget · 2026</span>
             </div>
           </div>
           <nav className="flex items-center gap-1 text-sm">
-            <a className="px-3 py-1.5 rounded-md bg-ink-100 text-ink-900 font-medium">Budget</a>
+            <a className="px-3 py-1.5 rounded-md bg-white text-ink-900 font-medium border border-paper-300">Budget</a>
             <a className="px-3 py-1.5 rounded-md text-ink-500 hover:text-ink-900">Team</a>
             <a className="px-3 py-1.5 rounded-md text-ink-500 hover:text-ink-900">Projects</a>
             <a className="px-3 py-1.5 rounded-md text-ink-500 hover:text-ink-900">Docs</a>
@@ -92,7 +92,7 @@ export default function BudgetDashboard() {
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-3xl font-semibold text-ink-900 tracking-tight serif">Forward Projections — 2026</h1>
+            <h1 className="wordmark text-3xl text-ink-900">Forward Projections <span className="text-brand-500">·</span> 2026</h1>
             <p className="text-sm text-ink-500 mt-1">
               Free cash flow flows into the talent profit pool. Losses carry forward — pool is never negative.
               {scenarios.length > 0 ? (

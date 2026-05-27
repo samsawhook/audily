@@ -38,49 +38,49 @@ export default function MonthlyChart({ calc, baseline }: Props) {
     <div className="card p-5 h-full">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="text-sm font-semibold text-ink-900 serif">Monthly Revenue, Expenses & TPP</h3>
+          <h3 className="text-sm font-semibold text-ink-900">Monthly Revenue, Expenses & TPP</h3>
           <p className="text-xs text-ink-500">May – Dec 2026 (projected)</p>
         </div>
         <div className="flex flex-wrap items-center gap-3 text-xs text-ink-500">
           <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-brand-500" /> Revenue</span>
           {baseline ? <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-brand-300" /> What-if</span> : null}
-          <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-ink-300" /> Direct</span>
-          <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-ink-400" /> Overhead</span>
-          <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-ink-500" /> Debt</span>
-          <span className="flex items-center gap-1.5"><span className="h-0.5 w-3 bg-accent-400" /> FCF</span>
+          <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-paper-300" /> Direct</span>
+          <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-paper-400" /> Overhead</span>
+          <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-ink-400" /> Debt</span>
+          <span className="flex items-center gap-1.5"><span className="h-0.5 w-3 bg-ink-400" /> FCF</span>
           <span className="flex items-center gap-1.5"><span className="h-0.5 w-3 bg-good-500" /> TPP</span>
         </div>
       </div>
       <div className="h-72">
         <ResponsiveContainer>
           <ComposedChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 4 }}>
-            <CartesianGrid stroke="#EEE9DD" vertical={false} />
-            <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={12} stroke="#8B8270" />
+            <CartesianGrid stroke="#EFEFEF" vertical={false} />
+            <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={12} stroke="#737373" />
             <YAxis
               tickLine={false}
               axisLine={false}
               fontSize={12}
-              stroke="#8B8270"
+              stroke="#737373"
               tickFormatter={(v) => formatCurrency(v, { compact: true })}
             />
             <Tooltip
               cursor={{ fill: "rgba(200,65,46,0.06)" }}
-              contentStyle={{ borderRadius: 12, border: "1px solid #EEE9DD", boxShadow: "0 4px 16px rgba(26,22,18,0.06)" }}
+              contentStyle={{ borderRadius: 12, border: "1px solid #EFEFEF", boxShadow: "0 4px 16px rgba(26,22,18,0.06)" }}
               formatter={(value: number, name: string) => [formatCurrency(value, { signed: name === "FCF" }), name]}
             />
-            <Bar dataKey="baseRevenue" stackId="rev" name="Revenue" fill="#C8412E" radius={[0, 0, 0, 0]} />
-            <Bar dataKey="scenarioRevenue" stackId="rev" name="What-if" fill="#E78468" radius={[6, 6, 0, 0]} />
-            <Bar dataKey="direct" stackId="exp" name="Direct" fill="#D8D2C2" radius={[0, 0, 0, 0]} />
-            <Bar dataKey="overhead" stackId="exp" name="Overhead" fill="#B5AC97" radius={[0, 0, 0, 0]} />
-            <Bar dataKey="debt" stackId="exp" name="Debt" fill="#8B8270" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="baseRevenue" stackId="rev" name="Revenue" fill="#F47369" radius={[0, 0, 0, 0]} />
+            <Bar dataKey="scenarioRevenue" stackId="rev" name="What-if" fill="#F89588" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="direct" stackId="exp" name="Direct" fill="#D6D6D6" radius={[0, 0, 0, 0]} />
+            <Bar dataKey="overhead" stackId="exp" name="Overhead" fill="#B8B8B8" radius={[0, 0, 0, 0]} />
+            <Bar dataKey="debt" stackId="exp" name="Debt" fill="#737373" radius={[6, 6, 0, 0]} />
             <Line
               type="monotone"
               dataKey="fcf"
               name="FCF"
-              stroke="#D9A02C"
+              stroke="#737373"
               strokeWidth={2}
               strokeDasharray="3 3"
-              dot={{ r: 2.5, fill: "#D9A02C" }}
+              dot={{ r: 2.5, fill: "#737373" }}
             />
             <Line
               type="monotone"

@@ -3,7 +3,7 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PROJECTED_MONTHS, formatCurrency, sumMonthly, type LineItem } from "@/lib/budget";
 
-const PROJECT_COLORS = ["#C8412E", "#DA5C3C", "#E78468", "#D9A02C", "#85261A", "#F1AC9C"];
+const PROJECT_COLORS = ["#F47369", "#E05144", "#F89588", "#737373", "#B83C32", "#FBB9B0"];
 
 type Props = { budget: LineItem[] };
 
@@ -46,18 +46,18 @@ export default function RevenueBreakdown({ budget }: Props) {
         <div className="lg:col-span-2 h-56">
           <ResponsiveContainer>
             <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 4 }}>
-              <CartesianGrid stroke="#EEE9DD" vertical={false} />
-              <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={12} stroke="#8B8270" />
+              <CartesianGrid stroke="#EFEFEF" vertical={false} />
+              <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={12} stroke="#737373" />
               <YAxis
                 tickLine={false}
                 axisLine={false}
                 fontSize={12}
-                stroke="#8B8270"
+                stroke="#737373"
                 tickFormatter={(v) => formatCurrency(v, { compact: true })}
               />
               <Tooltip
                 cursor={{ fill: "rgba(200,65,46,0.06)" }}
-                contentStyle={{ borderRadius: 12, border: "1px solid #EEE9DD", boxShadow: "0 4px 16px rgba(26,22,18,0.06)" }}
+                contentStyle={{ borderRadius: 12, border: "1px solid #EFEFEF", boxShadow: "0 4px 16px rgba(26,22,18,0.06)" }}
                 formatter={(v: number, name: string) => [formatCurrency(v), name]}
               />
               {projects.map((p, i) => (

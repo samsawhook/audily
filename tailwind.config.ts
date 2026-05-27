@@ -1,9 +1,7 @@
 import type { Config } from "tailwindcss";
 
-// Rococo Punch palette — warm cream background, deep ink text,
-// crimson "punch" primary, gold accent. Hex values are best-guess
-// since rococopunch.com is blocked by the sandbox; swap in the
-// real brand hexes here and they propagate to every component.
+// Rococo Punch palette — coral primary on neutral grey paper,
+// cool grey ink. Asterisk wordmark in bold geometric sans.
 export default {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -12,61 +10,52 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Warm cream / parchment background
-        cream: {
-          50: "#FDFAF4",
-          100: "#FAF4E8",
-          200: "#F5EBD6",
-          300: "#EEDFC0",
-          400: "#E2CBA0",
+        // Neutral paper background (matches the logo plate)
+        paper: {
+          50: "#F7F7F7",
+          100: "#EFEFEF",
+          200: "#E5E5E5",
+          300: "#D6D6D6",
+          400: "#B8B8B8",
         },
         ink: {
-          50: "#F7F4EE",
-          100: "#EEE9DD",
-          200: "#D8D2C2",
-          300: "#B5AC97",
-          400: "#8B8270",
-          500: "#6B6354",
-          600: "#544D42",
-          700: "#3F3A32",
-          800: "#272420",
-          900: "#1A1612",
-          950: "#0E0B09",
+          50: "#F7F7F7",
+          100: "#EBEBEB",
+          200: "#D4D4D4",
+          300: "#A3A3A3",
+          400: "#737373",
+          500: "#525252",
+          600: "#404040",
+          700: "#2D2D2D",
+          800: "#1A1A1A",
+          900: "#0F0F0F",
+          950: "#080808",
         },
-        // Crimson "punch"
+        // Coral "punch"
         brand: {
-          50: "#FCEEEA",
-          100: "#F8D6CD",
-          200: "#F1AC9C",
-          300: "#E78468",
-          400: "#DA5C3C",
-          500: "#C8412E",
-          600: "#A93423",
-          700: "#85261A",
-          800: "#621A12",
-          900: "#3F100A",
-        },
-        // Warm gold accent
-        accent: {
-          50: "#FDF6E3",
-          100: "#FBEAB6",
-          200: "#F6D472",
-          300: "#E9B934",
-          400: "#D9A02C",
-          500: "#B68420",
+          50: "#FEF1EF",
+          100: "#FDDFDB",
+          200: "#FBB9B0",
+          300: "#F89588",
+          400: "#F58379",
+          500: "#F47369",
+          600: "#E05144",
+          700: "#B83C32",
+          800: "#8F2D26",
+          900: "#661F1A",
         },
         good: {
-          500: "#3F7A4A",
-          600: "#2F5B37",
+          500: "#3D9970",
+          600: "#2F7A57",
         },
         bad: {
-          500: "#C8412E",
-          600: "#A93423",
+          500: "#E05144",
+          600: "#B83C32",
         },
       },
       fontFamily: {
-        sans: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
-        display: ["ui-serif", "Georgia", "Cambria", "Times New Roman", "Times", "serif"],
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
+        display: ["var(--font-display)", "Archivo Black", "ui-sans-serif", "system-ui", "Impact", "sans-serif"],
       },
     },
   },

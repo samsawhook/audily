@@ -3,7 +3,7 @@
 import type { Calculation, Member } from "@/lib/budget";
 import { PROJECTED_MONTHS, computeMemberEarnings, formatCurrency } from "@/lib/budget";
 
-const MEMBER_COLORS = ["#C8412E", "#85261A", "#D9A02C"];
+const MEMBER_COLORS = ["#F47369", "#B83C32", "#737373"];
 
 type Props = {
   calc: Calculation;
@@ -18,8 +18,8 @@ export default function EmployeeEarnings({ calc, members }: Props) {
       <div className="p-5 pb-3">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-semibold text-ink-900 serif">Earnings by member</h3>
-            <p className="text-xs text-ink-500">From TPP after loss carry-forward · run-rate for 2027 in <span className="serif italic">Annualized</span></p>
+            <h3 className="text-sm font-semibold text-ink-900">Earnings by member</h3>
+            <p className="text-xs text-ink-500">From TPP after loss carry-forward · run-rate for 2027 in <span className="italic font-medium">Annualized</span></p>
           </div>
           {calc.yearEndCarry < 0 ? (
             <div className="chip bg-bad-500/10 text-bad-600">
@@ -32,14 +32,14 @@ export default function EmployeeEarnings({ calc, members }: Props) {
       <div className="overflow-x-auto border-t border-ink-100">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-ink-500 bg-cream-50/60">
+            <tr className="text-[11px] uppercase tracking-wider text-ink-500 bg-paper-100/60">
               <th className="text-left font-medium px-5 py-2">Member</th>
               {PROJECTED_MONTHS.map((m) => (
                 <th key={m} className="text-right font-medium px-3 py-2 numeral">{m}</th>
               ))}
               <th className="text-right font-medium px-3 py-2 numeral border-l border-ink-100">Total</th>
               <th className="text-right font-medium px-3 py-2 numeral">Avg/mo</th>
-              <th className="text-right font-medium px-5 py-2 numeral italic serif">Annualized</th>
+              <th className="text-right font-medium px-5 py-2 numeral italic">Annualized</th>
             </tr>
           </thead>
           <tbody>
@@ -76,13 +76,13 @@ export default function EmployeeEarnings({ calc, members }: Props) {
                   <td className="text-right px-3 py-3 numeral text-ink-700">
                     {formatCurrency(e.avgMonthly)}
                   </td>
-                  <td className="text-right px-5 py-3 numeral italic serif font-semibold text-ink-900">
+                  <td className="text-right px-5 py-3 numeral italic font-semibold text-ink-900">
                     {formatCurrency(e.annualized)}
                   </td>
                 </tr>
               );
             })}
-            <tr className="border-t-2 border-ink-200 bg-cream-50/60">
+            <tr className="border-t-2 border-ink-200 bg-paper-100/60">
               <td className="px-5 py-3 text-sm font-semibold text-ink-900">Total pool</td>
               {PROJECTED_MONTHS.map((m) => {
                 const v = calc.talentPool[m] || 0;
@@ -98,7 +98,7 @@ export default function EmployeeEarnings({ calc, members }: Props) {
               <td className="text-right px-3 py-3 numeral text-ink-700">
                 {formatCurrency(calc.talentPoolTotal / PROJECTED_MONTHS.length)}
               </td>
-              <td className="text-right px-5 py-3 numeral italic serif font-semibold text-ink-900">
+              <td className="text-right px-5 py-3 numeral italic font-semibold text-ink-900">
                 {formatCurrency(calc.talentPoolTotal * (12 / PROJECTED_MONTHS.length))}
               </td>
             </tr>
