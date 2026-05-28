@@ -244,7 +244,7 @@ export default function BudgetDashboard() {
           <MetricCard
             label="Projected Revenue"
             value={current.totalRevenue}
-            sublabel="May – Dec 2026"
+            sublabel="Jun – Dec 2026"
             delta={current.totalRevenue - baseline.totalRevenue}
             tone="neutral"
           />
@@ -312,7 +312,7 @@ export default function BudgetDashboard() {
         </section>
 
         <footer className="text-center text-xs text-ink-400 py-6">
-          Rococo Punch · internal · projections, not guarantees · v0.9
+          Rococo Punch · internal · projections, not guarantees · v1.0
         </footer>
       </main>
 

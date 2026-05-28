@@ -32,7 +32,7 @@ export default function RevenueBreakdown({ budget }: Props) {
       <div className="flex items-start justify-between mb-3 gap-4">
         <div>
           <h3 className="text-sm font-semibold text-ink-900">Revenue by project</h3>
-          <p className="text-xs text-ink-500">Rococo Punch slate, May – Dec 2026</p>
+          <p className="text-xs text-ink-500">Rococo Punch slate, Jun – Dec 2026</p>
         </div>
         <div className="text-right">
           <div className="text-[10px] uppercase tracking-wider text-ink-500">Peak month</div>

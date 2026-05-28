@@ -23,7 +23,7 @@ export default function ExpenseBreakdown({ calc }: Props) {
       <div className="mb-3">
         <h3 className="text-sm font-semibold text-ink-900">Where the money goes</h3>
         <p className="text-xs text-ink-500">
-          {calc.mode === "salary" ? "Operating costs + salary + tax" : "Operating outflows"}, May–Dec
+          {calc.mode === "salary" ? "Operating costs + salary + tax" : "Operating outflows"}, Jun–Dec
         </p>
       </div>
       <div className="h-56 relative">

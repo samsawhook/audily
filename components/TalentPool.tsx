@@ -41,7 +41,7 @@ export default function TalentPool({ calc, members, setMembers }: Props) {
   const subtitle = isTpp
     ? "Losses carry forward · pool is never negative · distributed pro rata"
     : "Each member's actual monthly net pay — edit to update everywhere";
-  const sizeLabel = isTpp ? "Annual TPP — May–Dec 2026" : "Annual net salaries — May–Dec 2026";
+  const sizeLabel = isTpp ? "Annual TPP — Jun–Dec 2026" : "Annual net salaries — Jun–Dec 2026";
 
   return (
     <div className="card p-5 h-full flex flex-col">

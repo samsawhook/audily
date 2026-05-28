@@ -42,7 +42,7 @@ export default function MonthlyChart({ calc, baseline }: Props) {
       <div className="flex items-center justify-between mb-3">
         <div>
           <h3 className="text-sm font-semibold text-ink-900">Monthly Revenue, Expenses & {compLabel}</h3>
-          <p className="text-xs text-ink-500">May – Dec 2026 (projected)</p>
+          <p className="text-xs text-ink-500">Jun – Dec 2026 (projected)</p>
         </div>
         <div className="flex flex-wrap items-center gap-3 text-xs text-ink-500">
           <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-brand-500" /> Revenue</span>

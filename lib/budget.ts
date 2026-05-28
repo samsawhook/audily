@@ -3,7 +3,7 @@ export type MonthKey =
   | "Jul" | "Aug" | "Sep" | "Oct" | "Nov" | "Dec";
 
 export const PROJECTED_MONTHS: MonthKey[] = [
-  "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
 export type MonthlyMap = Record<MonthKey, number>;
@@ -45,17 +45,19 @@ export const EMPLOYER_TAX_MONTHLY = 4267;
 
 // Default budget — owner-updated 2026 projection.
 export const DEFAULT_BUDGET: LineItem[] = [
-  { id: "rev_chronicle",  label: "Chronicle",  group: "revenue", monthly: fromProjected([0,     10000, 0,     0,      0,     0,     0,     0]) },
-  { id: "rev_cep",        label: "CEP",        group: "revenue", monthly: fromProjected([0,     0,     21333, 0,      21333, 0,     21334, 0]) },
-  { id: "rev_kscope",     label: "Kscope",     group: "revenue", monthly: fromProjected([0,     0,     0,     0,      0,     0,     0,     0]) },
-  { id: "rev_josh_levin", label: "Josh Levin", group: "revenue", monthly: fromProjected([0,     42000, 0,     0,      31500, 0,     31500, 0]) },
-  { id: "rev_bu",         label: "BU",         group: "revenue", monthly: fromProjected([0,     0,     0,     12000,  0,     0,     0,     0]) },
-  { id: "rev_wme",        label: "WME",        group: "revenue", monthly: fromProjected([0,     0,     0,     135000, 0,     0,     0,     0]) },
+  { id: "rev_chronicle",  label: "Chronicle",  group: "revenue", monthly: fromProjected([10000, 0,     0,      0,     0,     0,     0]) },
+  // CEP: $64k spread over three payments (Jul / Sep / Nov)
+  { id: "rev_cep",        label: "CEP",        group: "revenue", monthly: fromProjected([0,     21333, 0,      21333, 0,     21334, 0]) },
+  { id: "rev_kscope",     label: "Kscope",     group: "revenue", monthly: fromProjected([0,     0,     0,      0,     0,     0,     0]) },
+  { id: "rev_josh_levin", label: "Josh Levin", group: "revenue", monthly: fromProjected([42000, 0,     0,      31500, 0,     31500, 0]) },
+  { id: "rev_bu",         label: "BU",         group: "revenue", monthly: fromProjected([0,     0,     12000,  0,     0,     0,     0]) },
+  { id: "rev_wme",        label: "WME",        group: "revenue", monthly: fromProjected([0,     0,     135000, 0,     0,     0,     0]) },
 
   { id: "dir_discretionary",  label: "Discretionary",      group: "direct", monthly: flat(500)  },
   { id: "dir_marketing",      label: "Marketing & Travel", group: "direct", monthly: flat(500)  },
   { id: "dir_ga",             label: "G&A",                group: "direct", monthly: flat(100)  },
-  { id: "dir_contract_labor", label: "Contract Labor",     group: "direct", monthly: fromProjected([0, 16000, 8000, 8000, 8000, 8000, 8000, 8000]) },
+  // Contract Labor: $16k in June, $8k Jul–Dec ($64k total)
+  { id: "dir_contract_labor", label: "Contract Labor",     group: "direct", monthly: fromProjected([16000, 8000, 8000, 8000, 8000, 8000, 8000]) },
   { id: "dir_software_apps",  label: "Software & Apps",    group: "direct", monthly: flat(1000) },
   { id: "dir_health",         label: "Health Insurance",   group: "direct", monthly: flat(3500) },
 
