@@ -2,7 +2,7 @@
 
 import { Fragment } from "react";
 import type { Calculation, LineItem, LineItemGroup, MonthKey } from "@/lib/budget";
-import { PROJECTED_MONTHS, SALARY_MONTHLY, EMPLOYER_TAX_MONTHLY, formatCurrency, sumMonthly } from "@/lib/budget";
+import { PROJECTED_MONTHS, EMPLOYER_TAX_MONTHLY, formatCurrency, sumMonthly } from "@/lib/budget";
 
 type Props = {
   calc: Calculation;
@@ -128,7 +128,7 @@ export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Pr
                 </tr>
                 <tr>
                   <td className="pl-9 pr-5 py-1 text-ink-600 text-sm sticky left-0 bg-white z-10">
-                    Rococo Punch Salaries
+                    Net Salaries
                   </td>
                   {salaryRow.map((v, i) => (
                     <td key={i} className="text-right px-2 py-1 numeral text-ink-600">
@@ -141,7 +141,7 @@ export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Pr
                 </tr>
                 <tr>
                   <td className="pl-9 pr-5 py-1 text-ink-600 text-sm sticky left-0 bg-white z-10">
-                    Employer Tax
+                    Taxes (employer + employee)
                   </td>
                   {taxRow.map((v, i) => (
                     <td key={i} className="text-right px-2 py-1 numeral text-ink-600">
@@ -190,7 +190,8 @@ export default function BudgetTable({ calc, budget, setBudget, resetBudget }: Pr
 
       {isSalary ? (
         <div className="px-5 py-3 border-t border-paper-300 text-[11px] text-ink-500">
-          Salary and Employer Tax are fixed at ${SALARY_MONTHLY.toLocaleString()} and ${EMPLOYER_TAX_MONTHLY.toLocaleString()} / mo respectively — edit in <code className="text-ink-700">lib/budget.ts</code> if needed.
+          Salary row sums per-member net pay (edit in the Salary Distribution widget above).
+          Tax line ({formatCurrency(EMPLOYER_TAX_MONTHLY)}/mo) covers all employer + employee taxes — edit in <code className="text-ink-700">lib/budget.ts</code>.
         </div>
       ) : null}
     </div>

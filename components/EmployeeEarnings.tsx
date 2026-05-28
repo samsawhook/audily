@@ -11,7 +11,7 @@ type Props = {
 };
 
 export default function EmployeeEarnings({ calc, members }: Props) {
-  const earnings = computeMemberEarnings(members, calc.comp);
+  const earnings = computeMemberEarnings(members, calc);
   const isTpp = calc.mode === "tpp";
 
   return (
@@ -63,7 +63,11 @@ export default function EmployeeEarnings({ calc, members }: Props) {
                       </div>
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-ink-900">{e.member.name}</div>
-                        <div className="text-[11px] text-ink-500 numeral">{(e.normalizedShare * 100).toFixed(1)}%</div>
+                        <div className="text-[11px] text-ink-500 numeral">
+                          {isTpp
+                            ? `${(e.normalizedShare * 100).toFixed(1)}%`
+                            : `${formatCurrency(e.member.netSalary || 0)}/mo`}
+                        </div>
                       </div>
                     </div>
                   </td>

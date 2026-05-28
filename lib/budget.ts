@@ -37,8 +37,10 @@ export type LineItem = {
   monthly: MonthlyMap;
 };
 
-// Original sheet9 compensation figures — used when compMode === "salary".
-export const SALARY_MONTHLY = 25100;
+// Original sheet9 figures — salary line was a total NET-pay estimate
+// and the tax line covers all employer + employee taxes combined.
+// Net salaries are now per-member (see DEFAULT_MEMBERS); the salary
+// line is computed as the sum of each member's netSalary.
 export const EMPLOYER_TAX_MONTHLY = 4267;
 
 // Default budget — owner-updated 2026 projection.
@@ -68,13 +70,14 @@ export const DEFAULT_BUDGET: LineItem[] = [
 export type Member = {
   id: string;
   name: string;
-  share: number;
+  share: number;      // 0..100, used for TPP distribution
+  netSalary: number;  // dollars / month — used for salary distribution
 };
 
 export const DEFAULT_MEMBERS: Member[] = [
-  { id: "john",  name: "John Perotti", share: 40 },
-  { id: "erika", name: "Erika Lantz",  share: 30 },
-  { id: "emily", name: "Emily Forman", share: 30 },
+  { id: "john",  name: "John Perotti", share: 40, netSalary: 5637.51 },
+  { id: "erika", name: "Erika Lantz",  share: 30, netSalary: 6689.99 },
+  { id: "emily", name: "Emily Forman", share: 30, netSalary: 6070.06 },
 ];
 
 export type ScenarioProject = {
@@ -141,6 +144,7 @@ export type CalcOptions = {
   budget: LineItem[];
   scenarios: ScenarioProject[];
   compMode: CompMode;
+  members: Member[];
 };
 
 const accMap = (
@@ -188,12 +192,17 @@ export const computeBudget = (opts: CalcOptions): Calculation => {
     direct = accMap(direct, scenarioToMonthly(s, "productionCost"));
   }
 
-  // Salary/tax line items only apply in salary mode
+  // Salary/tax line items only apply in salary mode.
+  // Salary = sum of per-member net pay; tax covers all employer + employee taxes.
   const salary = zeroMap();
   const employerTax = zeroMap();
   if (opts.compMode === "salary") {
+    const totalNetMonthly = opts.members.reduce(
+      (a, m) => a + (m.netSalary || 0),
+      0,
+    );
     for (const m of PROJECTED_MONTHS) {
-      salary[m] = SALARY_MONTHLY;
+      salary[m] = totalNetMonthly;
       employerTax[m] = EMPLOYER_TAX_MONTHLY;
     }
   }
@@ -299,20 +308,42 @@ export type MemberEarnings = {
 
 export const computeMemberEarnings = (
   members: Member[],
-  comp: MonthlyMap,
+  calc: Calculation,
 ): MemberEarnings[] => {
-  const shareSum = members.reduce((a, m) => a + Math.max(0, m.share), 0);
   const periodMonths = PROJECTED_MONTHS.length;
+  // Salary mode: each member earns their own fixed net salary
+  if (calc.mode === "salary") {
+    return members.map((m) => {
+      const monthly = zeroMap();
+      for (const k of PROJECTED_MONTHS) monthly[k] = m.netSalary || 0;
+      const total = (m.netSalary || 0) * periodMonths;
+      return {
+        member: m,
+        normalizedShare: 0,
+        monthly,
+        total,
+        avgMonthly: m.netSalary || 0,
+        annualized: (m.netSalary || 0) * 12,
+      };
+    });
+  }
+  // TPP mode: distribute the pool by share
+  const shareSum = members.reduce((a, m) => a + Math.max(0, m.share), 0);
   return members.map((m) => {
     const normalized = shareSum > 0 ? Math.max(0, m.share) / shareSum : 0;
     const monthly = zeroMap();
     for (const k of PROJECTED_MONTHS) {
-      monthly[k] = (comp[k] || 0) * normalized;
+      monthly[k] = (calc.comp[k] || 0) * normalized;
     }
     const total = sumMonthly(monthly);
-    const avgMonthly = total / periodMonths;
-    const annualized = total * (12 / periodMonths);
-    return { member: m, normalizedShare: normalized, monthly, total, avgMonthly, annualized };
+    return {
+      member: m,
+      normalizedShare: normalized,
+      monthly,
+      total,
+      avgMonthly: total / periodMonths,
+      annualized: total * (12 / periodMonths),
+    };
   });
 };
 

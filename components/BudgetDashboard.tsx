@@ -5,6 +5,7 @@ import {
   computeBudget,
   DEFAULT_BUDGET,
   DEFAULT_MEMBERS,
+  formatCurrency,
   type CompMode,
   type LineItem,
   type Member,
@@ -36,7 +37,17 @@ export default function BudgetDashboard() {
       const m = localStorage.getItem(MEMBERS_KEY);
       if (m) {
         const parsed = JSON.parse(m);
-        if (Array.isArray(parsed) && parsed.length === DEFAULT_MEMBERS.length) setMembers(parsed);
+        if (Array.isArray(parsed) && parsed.length === DEFAULT_MEMBERS.length) {
+          // Backfill netSalary for members saved before salary mode existed
+          const migrated = parsed.map((p: Member) => {
+            const fallback = DEFAULT_MEMBERS.find((d) => d.id === p.id);
+            return {
+              ...p,
+              netSalary: typeof p.netSalary === "number" ? p.netSalary : (fallback?.netSalary ?? 0),
+            };
+          });
+          setMembers(migrated);
+        }
       }
       const b = localStorage.getItem(BUDGET_KEY);
       if (b) {
@@ -63,20 +74,21 @@ export default function BudgetDashboard() {
   const resetBudget = () => updateBudget(DEFAULT_BUDGET);
 
   const baseline = useMemo(
-    () => computeBudget({ budget, scenarios: [], compMode }),
-    [budget, compMode],
+    () => computeBudget({ budget, scenarios: [], compMode, members }),
+    [budget, compMode, members],
   );
   const current = useMemo(
-    () => computeBudget({ budget, scenarios, compMode }),
-    [budget, scenarios, compMode],
+    () => computeBudget({ budget, scenarios, compMode, members }),
+    [budget, scenarios, compMode, members],
   );
 
+  const monthlyNet = members.reduce((a, m) => a + (m.netSalary || 0), 0);
   const compLabel = compMode === "tpp" ? "Talent Profit Pool" : "Salaries & Tax";
   const compSublabel = compMode === "tpp"
     ? (current.yearEndCarry < 0
         ? `carries -${Math.round(-current.yearEndCarry / 1000)}k into '27`
         : "100% to team, carry-forward")
-    : "$25,100/mo salaries + $4,267/mo tax";
+    : `${formatCurrency(monthlyNet)}/mo net + ${formatCurrency(4267)}/mo tax`;
 
   const netTone = current.companyNetTotal >= 0 ? "good" : "bad";
 
@@ -108,7 +120,7 @@ export default function BudgetDashboard() {
             <p className="text-sm text-ink-500 mt-1">
               {compMode === "tpp"
                 ? "Free cash flow flows into the talent profit pool. Losses carry forward — pool is never negative."
-                : "Fixed monthly salaries: $25,100 + $4,267 employer tax. Company net is what's left after."}
+                : `Per-employee net salaries totalling ${formatCurrency(monthlyNet)}/mo + ${formatCurrency(4267)}/mo for all employer and employee taxes.`}
               {scenarios.length > 0 ? (
                 <span className="ml-2 chip bg-brand-100 text-brand-700">
                   {scenarios.length} what-if {scenarios.length === 1 ? "scenario" : "scenarios"} active
@@ -193,7 +205,7 @@ export default function BudgetDashboard() {
         </section>
 
         <footer className="text-center text-xs text-ink-400 py-6">
-          Rococo Punch · internal · projections, not guarantees · v0.6
+          Rococo Punch · internal · projections, not guarantees · v0.7
         </footer>
       </main>
     </div>

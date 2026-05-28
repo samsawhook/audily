@@ -20,13 +20,16 @@ const MEMBER_COLORS = ["#F47369", "#B83C32", "#737373"];
 
 export default function TalentPool({ calc, members, setMembers }: Props) {
   const isTpp = calc.mode === "tpp";
-  const pool = calc.compTotal;
-  const distributions = useMemo(() => distributePool(pool, members), [pool, members]);
+  const pool = calc.compTotal; // member-facing total (TPP or salary; never tax)
+  const tppDistributions = useMemo(() => distributePool(pool, members), [pool, members]);
   const shareSum = members.reduce((a, m) => a + Math.max(0, m.share), 0);
   const balanced = Math.round(shareSum) === 100;
 
   const updateShare = (id: string, share: number) => {
     setMembers(members.map((m) => (m.id === id ? { ...m, share } : m)));
+  };
+  const updateNetSalary = (id: string, netSalary: number) => {
+    setMembers(members.map((m) => (m.id === id ? { ...m, netSalary } : m)));
   };
 
   const monthlyData = PROJECTED_MONTHS.map((m) => ({
@@ -37,8 +40,8 @@ export default function TalentPool({ calc, members, setMembers }: Props) {
   const title = isTpp ? "Talent Profit Pool" : "Salary Distribution";
   const subtitle = isTpp
     ? "Losses carry forward · pool is never negative · distributed pro rata"
-    : "Fixed monthly salaries — $25,100/mo total, split by share";
-  const sizeLabel = isTpp ? "Annual TPP — May–Dec 2026" : "Annual salaries — May–Dec 2026";
+    : "Each member's actual monthly net pay — edit to update everywhere";
+  const sizeLabel = isTpp ? "Annual TPP — May–Dec 2026" : "Annual net salaries — May–Dec 2026";
 
   return (
     <div className="card p-5 h-full flex flex-col">
@@ -51,7 +54,7 @@ export default function TalentPool({ calc, members, setMembers }: Props) {
           onClick={() => setMembers(DEFAULT_MEMBERS)}
           className="text-[11px] text-ink-500 hover:text-ink-900 underline underline-offset-2"
         >
-          reset 40/30/30
+          reset defaults
         </button>
       </div>
 
@@ -59,7 +62,7 @@ export default function TalentPool({ calc, members, setMembers }: Props) {
         <div className="text-[10px] uppercase tracking-wider text-brand-700 font-semibold">
           {sizeLabel}
         </div>
-        <div className="mt-1 flex items-baseline gap-3">
+        <div className="mt-1 flex items-baseline gap-3 flex-wrap">
           <div className="numeral text-3xl font-bold text-brand-700">
             {formatCurrency(pool)}
           </div>
@@ -70,7 +73,7 @@ export default function TalentPool({ calc, members, setMembers }: Props) {
           ) : null}
           {!isTpp ? (
             <div className="text-xs text-ink-500">
-              + {formatCurrency(calc.totalEmployerTax)} employer tax
+              + {formatCurrency(calc.totalEmployerTax)} taxes (employer + employee)
             </div>
           ) : null}
         </div>
@@ -95,11 +98,57 @@ export default function TalentPool({ calc, members, setMembers }: Props) {
       </div>
 
       <div className="mt-4 space-y-3">
-        {distributions.map((d, idx) => {
+        {members.map((m, idx) => {
           const color = MEMBER_COLORS[idx % MEMBER_COLORS.length];
-          const initials = d.member.name.split(" ").map((p) => p[0]).join("").slice(0, 2);
+          const initials = m.name.split(" ").map((p) => p[0]).join("").slice(0, 2);
+
+          if (isTpp) {
+            const d = tppDistributions[idx];
+            return (
+              <div key={m.id} className="rounded-xl border border-paper-300 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className="h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
+                      style={{ background: color }}
+                    >
+                      {initials}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-ink-900 truncate">{m.name}</div>
+                      <div className="text-[11px] text-ink-500 numeral">
+                        {(d.normalizedShare * 100).toFixed(1)}%
+                        {Math.round(m.share) !== Math.round(d.normalizedShare * 100)
+                          ? <span className="text-ink-400"> (raw {m.share}%)</span>
+                          : null}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="numeral text-base font-semibold shrink-0 text-ink-900">
+                    {formatCurrency(d.amount)}
+                  </div>
+                </div>
+                <div className="mt-2 flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={m.share}
+                    onChange={(e) => updateShare(m.id, parseInt(e.target.value, 10))}
+                    className="flex-1"
+                    style={{ accentColor: color }}
+                  />
+                  <div className="numeral text-xs text-ink-700 w-10 text-right">{m.share}%</div>
+                </div>
+              </div>
+            );
+          }
+
+          // Salary mode
+          const annual = (m.netSalary || 0) * 12;
           return (
-            <div key={d.member.id} className="rounded-xl border border-paper-300 p-3">
+            <div key={m.id} className="rounded-xl border border-paper-300 p-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div
@@ -109,44 +158,47 @@ export default function TalentPool({ calc, members, setMembers }: Props) {
                     {initials}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-medium text-ink-900 truncate">{d.member.name}</div>
+                    <div className="text-sm font-medium text-ink-900 truncate">{m.name}</div>
                     <div className="text-[11px] text-ink-500 numeral">
-                      {(d.normalizedShare * 100).toFixed(1)}%
-                      {Math.round(d.member.share) !== Math.round(d.normalizedShare * 100)
-                        ? <span className="text-ink-400"> (raw {d.member.share}%)</span>
-                        : null}
+                      {formatCurrency(annual)} annualized
                     </div>
                   </div>
                 </div>
-                <div className="numeral text-base font-semibold shrink-0 text-ink-900">
-                  {formatCurrency(d.amount)}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[11px] text-ink-400">$</span>
+                  <input
+                    type="number"
+                    step={0.01}
+                    min={0}
+                    value={Number.isFinite(m.netSalary) ? m.netSalary : 0}
+                    onChange={(e) => updateNetSalary(m.id, parseFloat(e.target.value) || 0)}
+                    className="w-24 text-right numeral text-base font-semibold rounded-md border border-paper-300 bg-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-100 focus:border-brand-500"
+                    aria-label={`${m.name} monthly net salary`}
+                  />
+                  <span className="text-[11px] text-ink-400">/mo</span>
                 </div>
-              </div>
-              <div className="mt-2 flex items-center gap-3">
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={d.member.share}
-                  onChange={(e) => updateShare(d.member.id, parseInt(e.target.value, 10))}
-                  className="flex-1"
-                  style={{ accentColor: color }}
-                />
-                <div className="numeral text-xs text-ink-700 w-10 text-right">{d.member.share}%</div>
               </div>
             </div>
           );
         })}
       </div>
 
-      <div className="mt-3 flex items-center justify-between rounded-lg bg-paper-100 px-3 py-2">
-        <span className="text-xs text-ink-500">Total of raw shares</span>
-        <span className={`numeral text-xs font-semibold ${balanced ? "text-good-600" : "text-ink-500"}`}>
-          {shareSum}%
-          {balanced ? " ✓" : <span className="text-ink-400 font-normal ml-1">(normalized for math)</span>}
-        </span>
-      </div>
+      {isTpp ? (
+        <div className="mt-3 flex items-center justify-between rounded-lg bg-paper-100 px-3 py-2">
+          <span className="text-xs text-ink-500">Total of raw shares</span>
+          <span className={`numeral text-xs font-semibold ${balanced ? "text-good-600" : "text-ink-500"}`}>
+            {shareSum}%
+            {balanced ? " ✓" : <span className="text-ink-400 font-normal ml-1">(normalized for math)</span>}
+          </span>
+        </div>
+      ) : (
+        <div className="mt-3 flex items-center justify-between rounded-lg bg-paper-100 px-3 py-2">
+          <span className="text-xs text-ink-500">Sum of monthly net salaries</span>
+          <span className="numeral text-xs font-semibold text-ink-900">
+            {formatCurrency(members.reduce((a, m) => a + (m.netSalary || 0), 0))}/mo
+          </span>
+        </div>
+      )}
     </div>
   );
 }
