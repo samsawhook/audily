@@ -312,7 +312,7 @@ export default function BudgetDashboard() {
         </section>
 
         <footer className="text-center text-xs text-ink-400 py-6">
-          Rococo Punch · internal · projections, not guarantees · v0.8
+          Rococo Punch · internal · projections, not guarantees · v0.9
         </footer>
       </main>
 

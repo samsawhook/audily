@@ -45,10 +45,10 @@ export const EMPLOYER_TAX_MONTHLY = 4267;
 
 // Default budget — owner-updated 2026 projection.
 export const DEFAULT_BUDGET: LineItem[] = [
-  { id: "rev_chronicle",  label: "Chronicle",  group: "revenue", monthly: fromProjected([10000, 0,     0,     0,      0,     0,     0,     0]) },
+  { id: "rev_chronicle",  label: "Chronicle",  group: "revenue", monthly: fromProjected([0,     10000, 0,     0,      0,     0,     0,     0]) },
   { id: "rev_cep",        label: "CEP",        group: "revenue", monthly: fromProjected([0,     0,     21333, 0,      21333, 0,     21334, 0]) },
   { id: "rev_kscope",     label: "Kscope",     group: "revenue", monthly: fromProjected([0,     0,     0,     0,      0,     0,     0,     0]) },
-  { id: "rev_josh_levin", label: "Josh Levin", group: "revenue", monthly: fromProjected([42000, 0,     0,     0,      31500, 0,     31500, 0]) },
+  { id: "rev_josh_levin", label: "Josh Levin", group: "revenue", monthly: fromProjected([0,     42000, 0,     0,      31500, 0,     31500, 0]) },
   { id: "rev_bu",         label: "BU",         group: "revenue", monthly: fromProjected([0,     0,     0,     12000,  0,     0,     0,     0]) },
   { id: "rev_wme",        label: "WME",        group: "revenue", monthly: fromProjected([0,     0,     0,     135000, 0,     0,     0,     0]) },
 
