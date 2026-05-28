@@ -91,11 +91,22 @@ export const DEFAULT_MEMBERS: Member[] = [
   { id: "emily", name: "Emily Forman", share: 30, netSalary: 6070.06, healthcareEmployeeMonthly: 975 },
 ];
 
-// Estimate annual gross compensation from net salary + healthcare contribution.
-// Approximate — assumes ESTIMATED_EMPLOYEE_TAX_RATE applies cleanly.
+// Estimate annual gross W-2 wages from a member's monthly net + healthcare
+// contribution, assuming healthcare is paid pre-tax (typical Section 125 setup):
+//   net = (gross − healthcare) × (1 − taxRate)
+//   ⇒ gross = net / (1 − taxRate) + healthcare
 export const estimateGrossAnnual = (m: Member): number => {
-  const preTaxMonthly = (m.netSalary || 0) + (m.healthcareEmployeeMonthly || 0);
-  return (preTaxMonthly / (1 - ESTIMATED_EMPLOYEE_TAX_RATE)) * 12;
+  const net = m.netSalary || 0;
+  const healthcare = m.healthcareEmployeeMonthly || 0;
+  const grossMonthly = net / (1 - ESTIMATED_EMPLOYEE_TAX_RATE) + healthcare;
+  return grossMonthly * 12;
+};
+
+// Inverse: given an annual gross figure (e.g., TPP distribution), estimate the
+// member's net take-home using the same pre-tax-healthcare assumption.
+export const estimateNetFromGrossAnnual = (grossAnnual: number, m: Member): number => {
+  const healthcareAnnual = (m.healthcareEmployeeMonthly || 0) * 12;
+  return (grossAnnual - healthcareAnnual) * (1 - ESTIMATED_EMPLOYEE_TAX_RATE);
 };
 
 export type ScenarioProject = {
