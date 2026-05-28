@@ -43,6 +43,11 @@ export type LineItem = {
 // line is computed as the sum of each member's netSalary.
 export const EMPLOYER_TAX_MONTHLY = 4267;
 
+// Rough effective combined federal + state + FICA on the employee
+// side, used only to estimate gross from net. Real number varies by
+// filing status, deductions, and exact premium structure.
+export const ESTIMATED_EMPLOYEE_TAX_RATE = 0.28;
+
 // Default budget — owner-updated 2026 projection.
 export const DEFAULT_BUDGET: LineItem[] = [
   { id: "rev_chronicle",  label: "Chronicle",  group: "revenue", monthly: fromProjected([10000, 0,     0,      0,     0,     0,     0]) },
@@ -72,15 +77,26 @@ export const DEFAULT_BUDGET: LineItem[] = [
 export type Member = {
   id: string;
   name: string;
-  share: number;      // 0..100, used for TPP distribution
-  netSalary: number;  // dollars / month — used for salary distribution
+  share: number;       // 0..100, used for TPP distribution
+  netSalary: number;   // dollars / month — used for salary distribution
+  // Employee's monthly contribution to healthcare premium (deducted from gross).
+  // Company pays 70% of the $5,000/mo total premium ($3,500 = Health Insurance line);
+  // the remaining $1,500/mo is split 65/35 Emily/Erika. John is on his own plan.
+  healthcareEmployeeMonthly: number;
 };
 
 export const DEFAULT_MEMBERS: Member[] = [
-  { id: "john",  name: "John Perotti", share: 40, netSalary: 5637.51 },
-  { id: "erika", name: "Erika Lantz",  share: 30, netSalary: 6689.99 },
-  { id: "emily", name: "Emily Forman", share: 30, netSalary: 6070.06 },
+  { id: "john",  name: "John Perotti", share: 40, netSalary: 5637.51, healthcareEmployeeMonthly: 0 },
+  { id: "erika", name: "Erika Lantz",  share: 30, netSalary: 6689.99, healthcareEmployeeMonthly: 525 },
+  { id: "emily", name: "Emily Forman", share: 30, netSalary: 6070.06, healthcareEmployeeMonthly: 975 },
 ];
+
+// Estimate annual gross compensation from net salary + healthcare contribution.
+// Approximate — assumes ESTIMATED_EMPLOYEE_TAX_RATE applies cleanly.
+export const estimateGrossAnnual = (m: Member): number => {
+  const preTaxMonthly = (m.netSalary || 0) + (m.healthcareEmployeeMonthly || 0);
+  return (preTaxMonthly / (1 - ESTIMATED_EMPLOYEE_TAX_RATE)) * 12;
+};
 
 export type ScenarioProject = {
   id: string;

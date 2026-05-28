@@ -72,6 +72,9 @@ export default function BudgetDashboard() {
               return {
                 ...p,
                 netSalary: typeof p.netSalary === "number" ? p.netSalary : (fallback?.netSalary ?? 0),
+                healthcareEmployeeMonthly: typeof p.healthcareEmployeeMonthly === "number"
+                  ? p.healthcareEmployeeMonthly
+                  : (fallback?.healthcareEmployeeMonthly ?? 0),
               };
             });
             setMembers(migrated);
@@ -312,7 +315,7 @@ export default function BudgetDashboard() {
         </section>
 
         <footer className="text-center text-xs text-ink-400 py-6">
-          Rococo Punch · internal · projections, not guarantees · v1.0
+          Rococo Punch · internal · projections, not guarantees · v1.1
         </footer>
       </main>
 
